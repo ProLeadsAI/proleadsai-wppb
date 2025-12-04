@@ -1,0 +1,34 @@
+{
+  "name": "proleadsai-wppb",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:dev": "VITE_API_MODE=dev vite build",
+    "build:prod": "VITE_API_MODE=prod vite build",
+    "wp-dev": "npm run build:dev && npx @wp-now/wp-now start",
+    "wp-prod": "npm run build:prod && npx @wp-now/wp-now start",
+    "release": "./scripts/release.sh",
+    "release:patch": "npm version patch --no-git-tag-version && ./scripts/release.sh",
+    "release:minor": "npm version minor --no-git-tag-version && ./scripts/release.sh",
+    "release:major": "npm version major --no-git-tag-version && ./scripts/release.sh"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@internationalized/date": "^3.10.0",
+    "@vueuse/core": "^14.1.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-vue-next": "^0.294.0",
+    "reka-ui": "^2.6.1",
+    "tailwind-merge": "^2.0.0",
+    "tw-animate-css": "^1.0.0",
+    "vue": "^3.3.8"
+  }
+}

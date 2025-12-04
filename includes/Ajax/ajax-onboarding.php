@@ -1,0 +1,450 @@
+<?php
+/**
+ * AJAX handlers for onboarding
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Get the API URL - uses localhost:3000 in dev mode
+ */
+function proleadsai_get_api_url() {
+    // Check for dev mode override
+    $dev_api_url = get_option('proleadsai_dev_api_url', '');
+    if (!empty($dev_api_url)) {
+        return rtrim($dev_api_url, '/');
+    }
+    return rtrim(get_option('proleadsai_api_url', 'https://next.proleadsai.com/api'), '/');
+}
+
+/**
+ * Helper function to make API requests with proper SSL handling
+ * Handles SSL compatibility issues with older PHP/OpenSSL versions
+ */
+function proleadsai_api_request($url, $args = array()) {
+    $defaults = array(
+        'timeout' => 30,
+        'sslverify' => false, // Disable SSL verification for compatibility
+        'headers' => array('Content-Type' => 'application/json'),
+    );
+    
+    $args = wp_parse_args($args, $defaults);
+    
+    // Add cURL options for better SSL compatibility
+    add_filter('http_request_args', 'proleadsai_curl_ssl_fix', 10, 2);
+    
+    $response = wp_remote_request($url, $args);
+    
+    remove_filter('http_request_args', 'proleadsai_curl_ssl_fix', 10);
+    
+    return $response;
+}
+
+/**
+ * Fix SSL compatibility issues with cURL
+ */
+function proleadsai_curl_ssl_fix($args, $url) {
+    // Only apply to our API
+    if (strpos($url, 'proleadsai.com') !== false || strpos($url, 'next.proleadsai.com') !== false) {
+        $args['sslverify'] = false;
+        
+        // Add cURL-specific options if available (only when cURL extension is loaded)
+        if (function_exists('curl_version')) {
+            if (!isset($args['curl'])) {
+                $args['curl'] = array();
+            }
+            
+            // Use TLS 1.2 minimum
+            if (defined('CURLOPT_SSLVERSION') && defined('CURL_SSLVERSION_TLSv1_2')) {
+                $args['curl'][CURLOPT_SSLVERSION] = CURL_SSLVERSION_TLSv1_2;
+            }
+            
+            // Don't verify host
+            if (defined('CURLOPT_SSL_VERIFYHOST')) {
+                $args['curl'][CURLOPT_SSL_VERIFYHOST] = 0;
+            }
+            if (defined('CURLOPT_SSL_VERIFYPEER')) {
+                $args['curl'][CURLOPT_SSL_VERIFYPEER] = false;
+            }
+        }
+    }
+    
+    return $args;
+}
+
+/**
+ * Send verification email (OTP)
+ */
+function proleadsai_send_verification_email() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $email = sanitize_email($data['email'] ?? '');
+    
+    if (empty($email)) {
+        wp_send_json_error(array('message' => 'Email is required'));
+        return;
+    }
+    
+    $api_url = proleadsai_get_api_url();
+    
+    $response = proleadsai_api_request($api_url . '/wordpress/auth/register', array(
+        'method' => 'POST',
+        'body' => json_encode(array('email' => $email))
+    ));
+    
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
+    }
+    
+    $status_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
+    
+    if ($status_code >= 400) {
+        wp_send_json_error(array('message' => $result['message'] ?? 'Failed to send verification email'));
+        return;
+    }
+    
+    wp_send_json_success($result);
+}
+add_action('wp_ajax_proleadsai_send_verification_email', 'proleadsai_send_verification_email');
+
+/**
+ * Verify OTP code
+ */
+function proleadsai_verify_otp() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $email = sanitize_email($data['email'] ?? '');
+    $code = sanitize_text_field($data['code'] ?? '');
+    
+    if (empty($email) || empty($code)) {
+        wp_send_json_error(array('message' => 'Email and code are required'));
+        return;
+    }
+    
+    $api_url = proleadsai_get_api_url();
+    
+    $response = proleadsai_api_request($api_url . '/wordpress/auth/verify-otp', array(
+        'method' => 'POST',
+        'body' => json_encode(array('email' => $email, 'code' => $code))
+    ));
+    
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
+    }
+    
+    $status_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
+    
+    if ($status_code >= 400) {
+        wp_send_json_error(array('message' => $result['message'] ?? 'Verification failed'));
+        return;
+    }
+    
+    wp_send_json_success($result);
+}
+add_action('wp_ajax_proleadsai_verify_otp', 'proleadsai_verify_otp');
+
+/**
+ * Create business - creates org + API key
+ */
+function proleadsai_create_business() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $user_id = sanitize_text_field($data['userId'] ?? '');
+    $business_name = sanitize_text_field($data['businessName'] ?? '');
+    
+    if (empty($user_id) || empty($business_name)) {
+        wp_send_json_error(array('message' => 'userId and businessName are required'));
+        return;
+    }
+    
+    $api_url = proleadsai_get_api_url();
+    
+    $response = proleadsai_api_request($api_url . '/wordpress/auth/create-business', array(
+        'method' => 'POST',
+        'body' => json_encode(array(
+            'userId' => $user_id,
+            'businessName' => $business_name,
+            'siteUrl' => get_site_url()
+        ))
+    ));
+    
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
+    }
+    
+    $status_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
+    
+    if ($status_code >= 400) {
+        wp_send_json_error(array('message' => $result['message'] ?? 'Failed to create business'));
+        return;
+    }
+    
+    wp_send_json_success($result);
+}
+add_action('wp_ajax_proleadsai_create_business', 'proleadsai_create_business');
+
+/**
+ * Update organization settings (Google Maps API key, price per sq ft)
+ */
+function proleadsai_update_settings() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $user_id = sanitize_text_field($data['userId'] ?? '');
+    
+    if (empty($user_id)) {
+        wp_send_json_error(array('message' => 'userId is required'));
+        return;
+    }
+    
+    $api_url = proleadsai_get_api_url();
+    
+    $body = array('userId' => $user_id);
+    
+    if (isset($data['businessName'])) {
+        $body['businessName'] = sanitize_text_field($data['businessName']);
+    }
+    
+    if (isset($data['googleMapsApiKey'])) {
+        $body['googleMapsApiKey'] = sanitize_text_field($data['googleMapsApiKey']);
+    }
+    
+    if (isset($data['pricePerSq'])) {
+        $body['pricePerSq'] = intval($data['pricePerSq']);
+    }
+    
+    if (isset($data['timezone'])) {
+        $body['timezone'] = sanitize_text_field($data['timezone']);
+    }
+    
+    $response = proleadsai_api_request($api_url . '/wordpress/auth/update-settings', array(
+        'method' => 'POST',
+        'body' => json_encode($body)
+    ));
+    
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
+    }
+    
+    $status_code = wp_remote_retrieve_response_code($response);
+    $response_body = wp_remote_retrieve_body($response);
+    $result = json_decode($response_body, true);
+    
+    if ($status_code >= 400) {
+        wp_send_json_error(array('message' => $result['message'] ?? 'Failed to update settings'));
+        return;
+    }
+    
+    wp_send_json_success($result);
+}
+add_action('wp_ajax_proleadsai_update_settings', 'proleadsai_update_settings');
+
+/**
+ * Save onboarding state locally
+ */
+function proleadsai_onboarding_save() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    if (!empty($data)) {
+        $current = get_option('proleadsai_onboarding', array());
+        $updated = array_merge($current, $data);
+        update_option('proleadsai_onboarding', $updated);
+    }
+    
+    wp_send_json_success();
+}
+add_action('wp_ajax_proleadsai_onboarding_save', 'proleadsai_onboarding_save');
+
+/**
+ * Get onboarding state
+ */
+function proleadsai_onboarding_get() {
+    $data = get_option('proleadsai_onboarding', array());
+    wp_send_json($data);
+}
+add_action('wp_ajax_proleadsai_onboarding_get', 'proleadsai_onboarding_get');
+
+/**
+ * Update organization settings
+ */
+function proleadsai_update_organization() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $team_id = sanitize_text_field($data['team_id'] ?? '');
+    $auth_token = sanitize_text_field($data['auth_token'] ?? '');
+    
+    if (empty($team_id) || empty($auth_token)) {
+        wp_send_json_error(array('message' => 'Missing credentials'));
+        return;
+    }
+    
+    $api_url = proleadsai_get_api_url();
+    
+    $response = proleadsai_api_request($api_url . '/organization/' . $team_id . '/settings', array(
+        'method' => 'PATCH',
+        'headers' => array(
+            'Content-Type' => 'application/json',
+            'x-api-key' => $auth_token
+        ),
+        'body' => json_encode(array(
+            'name' => sanitize_text_field($data['name'] ?? ''),
+            'googleMapsApiKey' => sanitize_text_field($data['googleMapsApiKey'] ?? ''),
+            'pricePerSq' => intval($data['pricePerSq'] ?? 750)
+        ))
+    ));
+    
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
+    }
+    
+    $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
+    
+    wp_send_json_success($result);
+}
+add_action('wp_ajax_proleadsai_update_organization', 'proleadsai_update_organization');
+
+/**
+ * Validate Google Maps API Key
+ * Tests Places Autocomplete and Solar API directly from WordPress server
+ * This ensures the API key works with the domain restrictions set by the user
+ */
+function proleadsai_validate_api_key() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $api_key = sanitize_text_field($data['apiKey'] ?? '');
+    
+    if (empty($api_key)) {
+        wp_send_json_error(array('message' => 'API key is required'));
+        return;
+    }
+    
+    $results = array(
+        'placesApi' => array('valid' => false, 'message' => ''),
+        'solarApi' => array('valid' => false, 'message' => '')
+    );
+    
+    // Test Places Autocomplete API
+    $places_url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json?' . http_build_query(array(
+        'input' => '1600 Amphitheatre Parkway',
+        'types' => 'address',
+        'key' => $api_key
+    ));
+    
+    $places_response = wp_remote_get($places_url, array(
+        'timeout' => 15,
+        'sslverify' => true
+    ));
+    
+    if (!is_wp_error($places_response)) {
+        $places_body = wp_remote_retrieve_body($places_response);
+        $places_data = json_decode($places_body, true);
+        
+        if ($places_data['status'] === 'OK' || $places_data['status'] === 'ZERO_RESULTS') {
+            $results['placesApi']['valid'] = true;
+            $results['placesApi']['message'] = 'Places API is configured correctly';
+        } elseif ($places_data['status'] === 'REQUEST_DENIED') {
+            $results['placesApi']['message'] = $places_data['error_message'] ?? 'Places API access denied. Enable Places API in Google Cloud Console.';
+        } elseif ($places_data['status'] === 'INVALID_REQUEST') {
+            $results['placesApi']['message'] = 'Invalid API key format';
+        } else {
+            $results['placesApi']['message'] = 'Places API error: ' . $places_data['status'];
+        }
+    } else {
+        $results['placesApi']['message'] = 'Failed to test Places API: ' . $places_response->get_error_message();
+    }
+    
+    // Test Solar API (using Google HQ coordinates)
+    $solar_url = 'https://solar.googleapis.com/v1/buildingInsights:findClosest?' . http_build_query(array(
+        'location.latitude' => 37.4220,
+        'location.longitude' => -122.0841,
+        'requiredQuality' => 'LOW',
+        'key' => $api_key
+    ));
+    
+    $solar_response = wp_remote_get($solar_url, array(
+        'timeout' => 15,
+        'sslverify' => true
+    ));
+    
+    if (!is_wp_error($solar_response)) {
+        $solar_status = wp_remote_retrieve_response_code($solar_response);
+        $solar_body = wp_remote_retrieve_body($solar_response);
+        $solar_data = json_decode($solar_body, true);
+        
+        if ($solar_status === 200 && isset($solar_data['solarPotential'])) {
+            $results['solarApi']['valid'] = true;
+            $results['solarApi']['message'] = 'Solar API is configured correctly';
+        } elseif (isset($solar_data['error'])) {
+            $error_msg = $solar_data['error']['message'] ?? '';
+            if (strpos($error_msg, 'API key not valid') !== false || strpos($error_msg, 'API_KEY_INVALID') !== false) {
+                $results['solarApi']['message'] = 'Invalid API key for Solar API';
+            } elseif (strpos($error_msg, 'has not been used') !== false || strpos($error_msg, 'disabled') !== false) {
+                $results['solarApi']['message'] = 'Solar API is not enabled. Enable it in Google Cloud Console.';
+            } elseif (strpos($error_msg, 'PERMISSION_DENIED') !== false) {
+                $results['solarApi']['message'] = 'Solar API access denied. Check API key restrictions.';
+            } else {
+                $results['solarApi']['message'] = $error_msg ?: 'Solar API error';
+            }
+        } else {
+            $results['solarApi']['message'] = 'Solar API returned unexpected response';
+        }
+    } else {
+        $results['solarApi']['message'] = 'Failed to test Solar API: ' . $solar_response->get_error_message();
+    }
+    
+    wp_send_json_success(array(
+        'success' => $results['placesApi']['valid'] && $results['solarApi']['valid'],
+        'results' => $results
+    ));
+}
+add_action('wp_ajax_proleadsai_validate_api_key', 'proleadsai_validate_api_key');
+
+/**
+ * Reset all plugin data (for testing)
+ */
+function proleadsai_reset_data() {
+    delete_option('proleadsai_onboarding');
+    delete_option('proleadsai_dev_api_url');
+    wp_send_json_success(array('message' => 'All plugin data has been reset'));
+}
+add_action('wp_ajax_proleadsai_reset_data', 'proleadsai_reset_data');
+
+/**
+ * Set dev API URL (for local development)
+ */
+function proleadsai_set_dev_api_url() {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
+    $url = sanitize_text_field($data['url'] ?? '');
+    
+    if (empty($url)) {
+        delete_option('proleadsai_dev_api_url');
+        wp_send_json_success(array('message' => 'Dev API URL cleared, using production'));
+        return;
+    }
+    
+    update_option('proleadsai_dev_api_url', $url);
+    wp_send_json_success(array('message' => 'Dev API URL set to: ' . $url));
+}
+add_action('wp_ajax_proleadsai_set_dev_api_url', 'proleadsai_set_dev_api_url');
