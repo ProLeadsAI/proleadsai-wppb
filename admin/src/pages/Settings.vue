@@ -112,78 +112,227 @@
       </CardContent>
     </Card>
 
-    <!-- Appearance Settings -->
+    <!-- Floating Button Appearance -->
     <Card>
       <CardHeader>
-        <CardTitle>Appearance</CardTitle>
+        <CardTitle>Floating Button</CardTitle>
+        <p class="text-sm text-muted-foreground">Customize the floating button that appears on your site</p>
       </CardHeader>
       <CardContent>
         <form @submit.prevent="saveAppearance" class="space-y-6">
-          <div class="space-y-2">
-            <Label>Primary Color</Label>
-            <div class="flex gap-2">
-              <input v-model="state.primary_color" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
-              <Input v-model="state.primary_color" class="w-32" />
+          <div class="space-y-3">
+            <Label>Visibility</Label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" :class="{ 'border-primary bg-primary/5': state.show_widget }">
+                <input type="radio" :value="true" v-model="state.show_widget" class="w-4 h-4 cursor-pointer" />
+                <div>
+                  <p class="font-medium">Show on all pages</p>
+                  <p class="text-sm text-muted-foreground">Floating button appears on every page of your site</p>
+                </div>
+              </label>
+              <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" :class="{ 'border-primary bg-primary/5': !state.show_widget }">
+                <input type="radio" :value="false" v-model="state.show_widget" class="w-4 h-4 cursor-pointer" />
+                <div>
+                  <p class="font-medium">Hide floating button</p>
+                  <p class="text-sm text-muted-foreground">Use shortcode to embed widget on specific pages</p>
+                </div>
+              </label>
             </div>
           </div>
 
-          <div class="space-y-2">
-            <Label>Secondary Color</Label>
-            <div class="flex gap-2">
-              <input v-model="state.secondary_color" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
-              <Input v-model="state.secondary_color" class="w-32" />
+          <div v-if="state.show_widget" class="space-y-6 pt-4 border-t">
+            <div class="space-y-2">
+              <Label>Position</Label>
+              <Select v-model="state.button_position">
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-center">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="left-edge">Left Edge (Vertical)</option>
+                <option value="right-edge">Right Edge (Vertical)</option>
+              </Select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <Label>Background Color</Label>
+                <div class="flex gap-2">
+                  <input v-model="state.primary_color" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
+                  <Input v-model="state.primary_color" class="w-32" />
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <Label>Text Color</Label>
+                <div class="flex gap-2">
+                  <input v-model="state.text_color" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
+                  <Input v-model="state.text_color" class="w-32" />
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <Label>Button Text</Label>
+              <Input v-model="state.button_text" placeholder="Get Roof Estimate" />
+            </div>
+
+            <div class="space-y-2">
+              <Label>Button Emoji</Label>
+              <div class="flex gap-2 items-center">
+                <Input v-model="state.button_emoji" class="w-20 text-center text-xl" maxlength="2" />
+                <div class="flex gap-1">
+                  <button type="button" @click="state.button_emoji = '🏠'" class="px-3 py-2 border rounded-md hover:bg-gray-100 text-xl cursor-pointer">🏠</button>
+                  <button type="button" @click="state.button_emoji = '🏡'" class="px-3 py-2 border rounded-md hover:bg-gray-100 text-xl cursor-pointer">🏡</button>
+                  <button type="button" @click="state.button_emoji = '⚡'" class="px-3 py-2 border rounded-md hover:bg-gray-100 text-xl cursor-pointer">⚡</button>
+                  <button type="button" @click="state.button_emoji = '🔨'" class="px-3 py-2 border rounded-md hover:bg-gray-100 text-xl cursor-pointer">🔨</button>
+                  <button type="button" @click="state.button_emoji = ''" class="px-3 py-2 border rounded-md hover:bg-gray-100 text-sm cursor-pointer">None</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Button Preview -->
+            <div class="space-y-2">
+              <Label>Preview</Label>
+              <div class="p-4 bg-gray-100 rounded-lg flex items-center justify-center">
+                <div 
+                  class="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-full shadow-lg"
+                  :style="`background-color: ${state.primary_color}; color: ${state.text_color};`"
+                >
+                  <span v-if="state.button_emoji" class="text-lg">{{ state.button_emoji }}</span>
+                  {{ state.button_text || 'Get Roof Estimate' }}
+                </div>
+              </div>
             </div>
           </div>
 
           <Button type="submit" :disabled="isSaving">
             <Loader2 v-if="isSaving" class="w-4 h-4 mr-2 animate-spin" />
-            {{ isSaving ? 'Saving...' : 'Save Appearance' }}
+            {{ isSaving ? 'Saving...' : 'Save Floating Button Settings' }}
           </Button>
         </form>
       </CardContent>
     </Card>
 
-    <!-- Display Settings -->
+    <!-- Shortcode Embed Settings -->
     <Card>
       <CardHeader>
-        <CardTitle>Widget Display</CardTitle>
+        <CardTitle>Shortcode Embed</CardTitle>
+        <p class="text-sm text-muted-foreground">Embed the roof estimator widget on specific pages</p>
       </CardHeader>
       <CardContent>
-        <form @submit.prevent="saveDisplay" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <Label>Show Floating Button</Label>
-            <input 
-              type="checkbox" 
-              v-model="state.show_widget"
-              class="w-5 h-5 cursor-pointer"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label>Button Position</Label>
-            <Select v-model="state.button_position">
-              <option value="bottom-left">Bottom Left</option>
-              <option value="bottom-center">Bottom Center</option>
-              <option value="bottom-right">Bottom Right</option>
-              <option value="left-edge">Left Edge</option>
-              <option value="right-edge">Right Edge</option>
-            </Select>
-          </div>
-
-          <div class="space-y-2">
-            <Label>Shortcode</Label>
+        <form @submit.prevent="saveShortcodeSettings" class="space-y-6">
+          <div class="space-y-3 p-4 bg-gray-50 rounded-lg">
+            <Label>Your Shortcode</Label>
             <Input 
               :value="shortcode" 
               readonly 
-              class="font-mono bg-gray-50"
+              class="font-mono bg-white text-sm"
               @click="$event.target.select()"
             />
-            <p class="text-sm text-muted-foreground">Copy this shortcode to embed the widget on any page.</p>
+            <div class="text-sm text-muted-foreground space-y-2">
+              <p v-if="shortcode === '[proleadsai_widget]'">
+                <strong>Default shortcode</strong> — will always use your saved settings below. Changes you make here will update all pages using this shortcode.
+              </p>
+              <div v-else>
+                <p><strong>Custom shortcode</strong> — these parameters are locked in. This shortcode will always use these exact settings, even if you change the defaults below.</p>
+                <p class="mt-2 text-xs bg-blue-50 text-blue-700 p-2 rounded">
+                  💡 <strong>Tip:</strong> You don't need to save these settings! Just configure the options, copy the shortcode, and use different versions on different pages (e.g., one image on homepage, another on contact page).
+                </p>
+              </div>
+            </div>
           </div>
+
+          <div class="space-y-2">
+            <Label>Section Heading</Label>
+            <Input v-model="state.shortcode_heading" placeholder="Get Your Free Roof Estimate" />
+          </div>
+
+          <div class="space-y-2">
+            <Label>Background Style</Label>
+            <Select v-model="state.shortcode_bg_style">
+              <option value="none">No Background</option>
+              <option value="light">Light Gray</option>
+              <option value="dark">Dark</option>
+              <option value="custom">Custom Color</option>
+            </Select>
+          </div>
+
+          <div v-if="state.shortcode_bg_style === 'custom'" class="space-y-2">
+            <Label>Custom Background Color</Label>
+            <div class="flex gap-2">
+              <input v-model="state.shortcode_bg_color" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
+              <Input v-model="state.shortcode_bg_color" class="w-32" />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <Label>Hero Image</Label>
+            <Select v-model="state.shortcode_image">
+              <option value="default">Default Roof Image</option>
+              <option value="none">No Image</option>
+              <option value="custom">Upload Custom Image</option>
+            </Select>
+            <p v-if="state.shortcode_image === 'custom'" class="text-xs text-muted-foreground">
+              Recommended: <strong>1200px wide × 400px tall</strong> (or similar 3:1 aspect ratio). Image will be cropped to fit.
+            </p>
+          </div>
+
+          <div v-if="state.shortcode_image === 'custom'" class="space-y-2">
+            <Label>Custom Image</Label>
+            <div class="flex gap-2">
+              <Input v-model="state.shortcode_custom_image" placeholder="https://..." class="flex-1" />
+              <Button type="button" variant="outline" @click="openMediaLibrary">
+                Select Image
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground">Choose from your Media Library or upload a new image</p>
+            <div v-if="state.shortcode_custom_image" class="mt-2">
+              <img :src="state.shortcode_custom_image" class="max-h-32 rounded-lg object-cover" alt="Preview" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label>Margin Top</Label>
+              <Select v-model="marginTopPreset">
+                <option value="">Default</option>
+                <option value="0">None (0)</option>
+                <option value="1rem">Small (1rem)</option>
+                <option value="2rem">Medium (2rem)</option>
+                <option value="4rem">Large (4rem)</option>
+                <option value="6rem">Extra Large (6rem)</option>
+                <option value="custom">Custom</option>
+              </Select>
+              <Input 
+                v-if="marginTopPreset === 'custom'" 
+                v-model="state.shortcode_margin_top" 
+                placeholder="e.g. 50px, 3.5rem"
+                class="mt-1"
+              />
+            </div>
+            <div class="space-y-2">
+              <Label>Margin Bottom</Label>
+              <Select v-model="marginBottomPreset">
+                <option value="">Default</option>
+                <option value="0">None (0)</option>
+                <option value="1rem">Small (1rem)</option>
+                <option value="2rem">Medium (2rem)</option>
+                <option value="4rem">Large (4rem)</option>
+                <option value="6rem">Extra Large (6rem)</option>
+                <option value="custom">Custom</option>
+              </Select>
+              <Input 
+                v-if="marginBottomPreset === 'custom'" 
+                v-model="state.shortcode_margin_bottom" 
+                placeholder="e.g. 50px, 3.5rem"
+                class="mt-1"
+              />
+            </div>
+          </div>
+          <p v-if="marginTopPreset === 'custom' || marginBottomPreset === 'custom'" class="text-xs text-muted-foreground">Use any CSS value: px, rem, em, vh, etc.</p>
 
           <Button type="submit" :disabled="isSaving">
             <Loader2 v-if="isSaving" class="w-4 h-4 mr-2 animate-spin" />
-            {{ isSaving ? 'Saving...' : 'Save Display Settings' }}
+            {{ isSaving ? 'Saving...' : 'Save Shortcode Settings' }}
           </Button>
         </form>
       </CardContent>
@@ -239,11 +388,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ArrowLeft, Loader2, CheckCircle, XCircle } from 'lucide-vue-next'
 import { Button, Input, Card, CardHeader, CardContent, CardTitle, Label, Alert, Select } from '@/components/ui'
 import ReauthModal from '@/components/ReauthModal.vue'
-import { getApiUrl } from '@/lib/api'
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) }
@@ -260,10 +408,21 @@ const state = reactive({
   google_maps_api_key: '',
   price_per_sq: '750',
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  primary_color: '#1d4ed8',
-  secondary_color: '#22c55e',
-  button_position: 'bottom-center',
-  show_widget: true
+  // Floating button settings
+  primary_color: '#facc15',
+  text_color: '#1c1917',
+  button_text: 'Get Roof Estimate',
+  button_emoji: '🏠',
+  button_position: 'bottom-right',
+  show_widget: true,
+  // Shortcode settings
+  shortcode_heading: '',
+  shortcode_bg_style: 'none',
+  shortcode_bg_color: '#f5f5f4',
+  shortcode_image: 'default',
+  shortcode_custom_image: '',
+  shortcode_margin_top: '',
+  shortcode_margin_bottom: ''
 })
 
 const isValidating = ref(false)
@@ -289,6 +448,32 @@ const error = ref('')
 const success = ref('')
 const showApiKeyHelp = ref(false)
 
+// Margin preset helpers
+const presetValues = ['', '0', '1rem', '2rem', '4rem', '6rem']
+const marginTopPreset = ref('')
+const marginBottomPreset = ref('')
+
+// Sync presets with state
+watch(() => state.shortcode_margin_top, (val) => {
+  marginTopPreset.value = presetValues.includes(val) ? val : 'custom'
+}, { immediate: true })
+
+watch(() => state.shortcode_margin_bottom, (val) => {
+  marginBottomPreset.value = presetValues.includes(val) ? val : 'custom'
+}, { immediate: true })
+
+watch(marginTopPreset, (val) => {
+  if (val !== 'custom') {
+    state.shortcode_margin_top = val
+  }
+})
+
+watch(marginBottomPreset, (val) => {
+  if (val !== 'custom') {
+    state.shortcode_margin_bottom = val
+  }
+})
+
 const siteDomain = computed(() => {
   try {
     return new URL(props.settings.siteUrl || window.location.origin).hostname
@@ -298,7 +483,36 @@ const siteDomain = computed(() => {
 })
 
 const shortcode = computed(() => {
-  return `[proleadsai_widget position="${state.button_position}" display="${state.show_widget}"]`
+  const parts = ['[proleadsai_widget']
+  
+  // Only add params if they differ from defaults
+  if (state.shortcode_heading) {
+    parts.push(`heading="${state.shortcode_heading}"`)
+  }
+  
+  if (state.shortcode_bg_style && state.shortcode_bg_style !== 'none') {
+    if (state.shortcode_bg_style === 'custom' && state.shortcode_bg_color) {
+      parts.push(`bg="${state.shortcode_bg_color}"`)
+    } else {
+      parts.push(`bg="${state.shortcode_bg_style}"`)
+    }
+  }
+  
+  if (state.shortcode_image === 'none') {
+    parts.push('image="none"')
+  } else if (state.shortcode_image === 'custom' && state.shortcode_custom_image) {
+    parts.push(`image="${state.shortcode_custom_image}"`)
+  }
+  
+  if (state.shortcode_margin_top) {
+    parts.push(`mt="${state.shortcode_margin_top}"`)
+  }
+  
+  if (state.shortcode_margin_bottom) {
+    parts.push(`mb="${state.shortcode_margin_bottom}"`)
+  }
+  
+  return parts.length > 1 ? parts.join(' ') + ']' : '[proleadsai_widget]'
 })
 
 onMounted(async () => {
@@ -334,17 +548,12 @@ onMounted(async () => {
 
 async function fetchSettingsFromApi() {
   try {
-    const baseUrl = getApiUrl()
-    const res = await fetch(`${baseUrl}/wordpress/settings`, {
-      headers: {
-        'x-api-key': state.auth_token,
-        'Accept': 'application/json'
-      }
-    })
+    const res = await fetch(`${props.settings.adminAjax}?action=proleadsai_proxy_get_settings`)
+    const response = await res.json()
     
-    if (res.ok) {
-      const data = await res.json()
-      // Update state with API values (source of truth)
+    if (response.success && response.data) {
+      const data = response.data
+      // Update state with API values (source of truth, already synced to WP in PHP)
       if (data.name) state.business = data.name
       if (data.googleMapsApiKey) {
         state.google_maps_api_key = data.googleMapsApiKey
@@ -358,19 +567,6 @@ async function fetchSettingsFromApi() {
       if (data.pricePerSq !== undefined) state.price_per_sq = data.pricePerSq.toString()
       if (data.timezone) state.timezone = data.timezone
       if (data.id) state.team_id = data.id
-      
-      // Sync back to WordPress
-      await fetch(`${props.settings.adminAjax}?action=proleadsai_onboarding_save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business: state.business,
-          google_maps_api_key: state.google_maps_api_key,
-          price_per_sq: state.price_per_sq,
-          timezone: state.timezone,
-          team_id: state.team_id
-        })
-      })
     }
   } catch (e) {
     console.error('Failed to fetch settings from API:', e)
@@ -437,46 +633,26 @@ async function saveSettings() {
       await validateApiKey()
     }
     
-    // Save to Better Auth API first (source of truth)
-    if (state.auth_token) {
-      const baseUrl = getApiUrl()
-      const res = await fetch(`${baseUrl}/wordpress/settings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': state.auth_token,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          name: state.business,
-          googleMapsApiKey: state.google_maps_api_key,
-          pricePerSq: parseInt(state.price_per_sq, 10) || 750,
-          timezone: state.timezone
-        })
+    // Save via WordPress proxy (handles API + WordPress sync)
+    const res = await fetch(`${props.settings.adminAjax}?action=proleadsai_proxy_save_settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: state.business,
+        googleMapsApiKey: state.google_maps_api_key,
+        pricePerSq: parseInt(state.price_per_sq, 10) || 750,
+        timezone: state.timezone
       })
-      
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.message || 'Failed to update settings on server')
-      }
-      
-      // Only save to WordPress after API success
-      await fetch(`${props.settings.adminAjax}?action=proleadsai_onboarding_save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business: state.business,
-          google_maps_api_key: state.google_maps_api_key,
-          price_per_sq: state.price_per_sq,
-          timezone: state.timezone
-        })
-      })
-      
-      success.value = 'Business settings updated successfully!'
-      setTimeout(() => { success.value = '' }, 3000)
-    } else {
-      throw new Error('Not authenticated. Please complete onboarding first.')
+    })
+    
+    const response = await res.json()
+    
+    if (!response.success) {
+      throw new Error(response.data?.message || 'Failed to update settings')
     }
+    
+    success.value = 'Business settings updated successfully!'
+    setTimeout(() => { success.value = '' }, 3000)
   } catch (e) {
     error.value = e.message || 'Failed to save settings'
   } finally {
@@ -494,21 +670,25 @@ async function saveAppearance() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        show_widget: state.show_widget,
+        button_position: state.button_position,
         primary_color: state.primary_color,
-        secondary_color: state.secondary_color
+        text_color: state.text_color,
+        button_text: state.button_text,
+        button_emoji: state.button_emoji
       })
     })
     
-    success.value = 'Appearance settings saved!'
+    success.value = 'Floating button settings saved!'
     setTimeout(() => { success.value = '' }, 3000)
   } catch (e) {
-    error.value = e.message || 'Failed to save appearance'
+    error.value = e.message || 'Failed to save settings'
   } finally {
     isSaving.value = false
   }
 }
 
-async function saveDisplay() {
+async function saveShortcodeSettings() {
   isSaving.value = true
   error.value = ''
   success.value = ''
@@ -518,15 +698,20 @@ async function saveDisplay() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        button_position: state.button_position,
-        show_widget: state.show_widget
+        shortcode_heading: state.shortcode_heading,
+        shortcode_bg_style: state.shortcode_bg_style,
+        shortcode_bg_color: state.shortcode_bg_color,
+        shortcode_image: state.shortcode_image,
+        shortcode_custom_image: state.shortcode_custom_image,
+        shortcode_margin_top: state.shortcode_margin_top,
+        shortcode_margin_bottom: state.shortcode_margin_bottom
       })
     })
     
-    success.value = 'Display settings saved!'
+    success.value = 'Shortcode settings saved!'
     setTimeout(() => { success.value = '' }, 3000)
   } catch (e) {
-    error.value = e.message || 'Failed to save display settings'
+    error.value = e.message || 'Failed to save shortcode settings'
   } finally {
     isSaving.value = false
   }
@@ -534,6 +719,28 @@ async function saveDisplay() {
 
 function goToDashboard() {
   window.location.href = `${props.settings.adminUrl}admin.php?page=proleadsai-dashboard`
+}
+
+function openMediaLibrary() {
+  // Use WordPress media library if available
+  if (window.wp && window.wp.media) {
+    const mediaFrame = window.wp.media({
+      title: 'Select Hero Image',
+      button: { text: 'Use this image' },
+      multiple: false
+    })
+    
+    mediaFrame.on('select', () => {
+      const attachment = mediaFrame.state().get('selection').first().toJSON()
+      state.shortcode_custom_image = attachment.url
+    })
+    
+    mediaFrame.open()
+  } else {
+    // Fallback: prompt for URL
+    const url = prompt('Enter image URL:')
+    if (url) state.shortcode_custom_image = url
+  }
 }
 
 async function handleReauthSuccess({ userId, authToken, teamId }) {

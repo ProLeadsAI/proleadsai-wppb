@@ -18,7 +18,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'apply'])
+
+const isOpen = ref(false)
 
 // Default to last 30 days using CalendarDate
 const todayDate = today(getLocalTimeZone())
@@ -79,10 +81,15 @@ const displayText = computed(() => {
   }
   return 'Pick a date range'
 })
+
+function applyRange() {
+  emit('apply')
+  isOpen.value = false
+}
 </script>
 
 <template>
-  <Popover>
+  <Popover v-model:open="isOpen">
     <PopoverTrigger as-child>
       <Button
         variant="outline"
@@ -96,26 +103,38 @@ const displayText = computed(() => {
       </Button>
     </PopoverTrigger>
     <PopoverContent class="w-auto p-0" align="end">
-      <div class="flex">
-        <!-- Quick select presets -->
-        <div class="flex flex-col gap-1 border-r p-3">
-          <p class="text-xs font-medium text-muted-foreground mb-2">Quick Select</p>
-          <button
-            v-for="preset in presets"
-            :key="preset.label"
-            @click="selectPreset(preset)"
-            class="text-left text-sm px-3 py-1.5 rounded-md hover:bg-accent transition-colors whitespace-nowrap"
-          >
-            {{ preset.label }}
-          </button>
+      <div class="flex flex-col">
+        <div class="flex">
+          <!-- Quick select presets -->
+          <div class="flex flex-col gap-1 border-r p-3">
+            <p class="text-xs font-medium text-muted-foreground mb-2">Quick Select</p>
+            <button
+              v-for="preset in presets"
+              :key="preset.label"
+              @click="selectPreset(preset)"
+              class="text-left text-sm px-3 py-1.5 rounded-md hover:bg-accent transition-colors whitespace-nowrap cursor-pointer"
+            >
+              {{ preset.label }}
+            </button>
+          </div>
+          <!-- Calendar -->
+          <RangeCalendar
+            :model-value="internalRange"
+            @update:model-value="onRangeChange"
+            :number-of-months="2"
+            initial-focus
+          />
         </div>
-        <!-- Calendar -->
-        <RangeCalendar
-          :model-value="internalRange"
-          @update:model-value="onRangeChange"
-          :number-of-months="2"
-          initial-focus
-        />
+        <!-- Apply button -->
+        <div class="flex justify-end border-t p-3">
+          <Button 
+            size="sm" 
+            @click="applyRange"
+            class="cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            Apply
+          </Button>
+        </div>
       </div>
     </PopoverContent>
   </Popover>

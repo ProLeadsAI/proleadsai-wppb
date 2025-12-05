@@ -22,7 +22,7 @@ const forwardedProps = useForwardProps(delegatedProps);
     :class="
       cn(
         'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-        'h-8 w-8 p-0 font-normal data-[selected]:opacity-100',
+        'h-8 w-8 p-0 font-normal data-[selected]:opacity-100 cursor-pointer hover:bg-accent hover:text-accent-foreground',
         '[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground',
         // Selection Start
         'data-[selection-start]:bg-primary data-[selection-start]:text-primary-foreground',

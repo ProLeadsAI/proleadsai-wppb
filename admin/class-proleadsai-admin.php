@@ -60,7 +60,10 @@ class Proleadsai_Admin {
 	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'dist/proleadsai-admin.css', array(), $this->version, 'all' );
+		// Use file modification time for cache busting
+		$css_file = plugin_dir_path( __FILE__ ) . 'dist/proleadsai-admin.css';
+		$css_version = file_exists($css_file) ? filemtime($css_file) : $this->version;
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'dist/proleadsai-admin.css', array(), $css_version, 'all' );
 	}
 
 	/**
@@ -70,8 +73,13 @@ class Proleadsai_Admin {
 	 */
 	public function enqueue_scripts() {
 
-		// Enqueue the Vue app
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'dist/proleadsai-admin.js', array(), $this->version, true );
+		// Enqueue WordPress media library for image uploads
+		wp_enqueue_media();
+
+		// Enqueue the Vue app - use file modification time for cache busting
+		$js_file = plugin_dir_path( __FILE__ ) . 'dist/proleadsai-admin.js';
+		$js_version = file_exists($js_file) ? filemtime($js_file) : $this->version;
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'dist/proleadsai-admin.js', array(), $js_version, true );
 		
 		// Determine current page
 		$screen = get_current_screen();
@@ -84,7 +92,8 @@ class Proleadsai_Admin {
 		
 		// Pass data to JS
 		wp_localize_script( $this->plugin_name, 'proleadsaiSettings', array(
-			'apiUrl' => function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : get_option('proleadsai_api_url', 'https://next.proleadsai.com/api'),
+			'baseUrl' => function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://next.proleadsai.com',
+			'apiUrl' => function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api',
 			'nonce' => wp_create_nonce( 'wp_rest' ),
 			'adminAjax' => admin_url( 'admin-ajax.php' ),
 			'adminUrl' => admin_url(),
@@ -120,7 +129,7 @@ class Proleadsai_Admin {
 				'manage_options', 
 				'proleadsai-dashboard', 
 				array( $this, 'display_page' ), 
-				'dashicons-cloud', 
+				'dashicons-admin-home', 
 				6
 			);
 			
@@ -149,7 +158,7 @@ class Proleadsai_Admin {
 				'manage_options', 
 				'proleadsai-onboarding', 
 				array( $this, 'display_page' ), 
-				'dashicons-cloud', 
+				'dashicons-admin-home', 
 				6
 			);
 		}

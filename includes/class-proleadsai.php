@@ -178,6 +178,9 @@ class Proleadsai {
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 		$this->loader->add_action( 'wp_footer', $plugin_public, 'render_widget' );
+		
+		// Register shortcode
+		add_shortcode( 'proleadsai_widget', array( $plugin_public, 'shortcode_widget' ) );
 
 	}
 

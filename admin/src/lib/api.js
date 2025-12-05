@@ -1,19 +1,18 @@
 /**
  * API helper for ProLeadsAI WordPress plugin
- * Uses VITE_API_MODE env var to determine which API to use
+ * Uses VITE_BASE_URL and VITE_API_MODE env vars set at build time
+ * 
+ * Build for dev:  pnpm build:dev  (uses .env.development)
+ * Build for prod: pnpm build      (uses .env.production)
  */
 
-// Production API URL
-const PROD_API_URL = 'https://next.proleadsai.com/api'
-
-// Dev API URL - for local development
-const DEV_API_URL = 'http://0.0.0.0:3000/api'
-
-// API mode set at build time via VITE_API_MODE env var
+// Base URL set at build time via .env files (without /api suffix)
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://next.proleadsai.com'
+const API_URL = `${BASE_URL}/api`
 const API_MODE = import.meta.env.VITE_API_MODE || 'prod'
 
-// Enable logging
-const DEBUG = true
+// Enable logging in dev mode
+const DEBUG = API_MODE === 'dev'
 
 function log(...args) {
   if (DEBUG) console.log('[ProLeadsAI API]', ...args)
@@ -27,12 +26,11 @@ function isDevMode() {
 }
 
 /**
- * Get the API base URL based on build mode
+ * Get the API base URL (set at build time)
  */
 function getApiUrl() {
-  const url = isDevMode() ? DEV_API_URL : PROD_API_URL
-  log('getApiUrl:', url, 'API_MODE:', API_MODE)
-  return url
+  log('API URL:', API_URL, 'Mode:', API_MODE)
+  return API_URL
 }
 
 /**
@@ -68,4 +66,4 @@ export async function apiRequest(endpoint, options = {}, settings = {}) {
   return { success: true, data }
 }
 
-export { isDevMode, getApiUrl, DEV_API_URL, PROD_API_URL }
+export { isDevMode, getApiUrl, BASE_URL, API_URL, API_MODE }

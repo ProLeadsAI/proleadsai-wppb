@@ -88,7 +88,7 @@ class Proleadsai_Public {
 			$this->version
 		);
 		
-		// Use Vue custom element widget
+		// Use Vue custom element widget (now includes floating button)
 		wp_enqueue_script( 
 			$this->plugin_name . '-widget-ce', 
 			plugin_dir_url( __FILE__ ) . 'js/proleadsai-widget-ce.js', 
@@ -96,30 +96,10 @@ class Proleadsai_Public {
 			$this->version, 
 			true 
 		);
-		
-		// Widget launcher script
-		wp_enqueue_script( 
-			$this->plugin_name . '-widget-launcher', 
-			plugin_dir_url( __FILE__ ) . 'js/proleadsai-widget-launcher.js', 
-			array( $this->plugin_name . '-widget-ce' ), 
-			$this->version, 
-			true 
-		);
-		
-		// Pass settings to JS
-		wp_localize_script( $this->plugin_name . '-widget-launcher', 'proleadsaiWidget', array(
-			'apiUrl' => 'https://next.proleadsai.com/api',
-			'orgId' => $settings['team_id'] ?? '',
-			'googleMapsApiKey' => $settings['google_maps_api_key'] ?? '',
-			'primaryColor' => $settings['primary_color'] ?? '#1d4ed8',
-			'secondaryColor' => $settings['secondary_color'] ?? '#22c55e',
-			'buttonPosition' => $settings['button_position'] ?? 'bottom-center',
-			'businessName' => $settings['business'] ?? ''
-		));
 	}
 
 	/**
-	 * Render the floating widget button in the footer
+	 * Render the floating widget in the footer
 	 */
 	public function render_widget() {
 		$settings = get_option( 'proleadsai_onboarding', array() );
@@ -131,57 +111,165 @@ class Proleadsai_Public {
 			return;
 		}
 		
-		$position = $settings['button_position'] ?? 'bottom-center';
-		$primary_color = $settings['primary_color'] ?? '#1d4ed8';
-		$business_name = $settings['business'] ?? 'Get Estimate';
+		echo $this->get_widget_html( 'floating' );
+	}
+
+	/**
+	 * Shortcode handler for [proleadsai_widget]
+	 * 
+	 * Supported attributes:
+	 * - heading: Custom heading text
+	 * - bg: Background style (none, light, dark, or a hex color like #f5f5f4)
+	 * - image: Hero image URL, "none" to hide, or "default" for default image
+	 */
+	public function shortcode_widget( $atts ) {
+		$settings = get_option( 'proleadsai_onboarding', array() );
+		$completed = ! empty( $settings['completed'] );
 		
-		// Position classes
-		$position_styles = array(
-			'bottom-left' => 'left: 20px; right: auto;',
-			'bottom-center' => 'left: 50%; transform: translateX(-50%);',
-			'bottom-right' => 'right: 20px; left: auto;',
-			'left-edge' => 'left: 0; bottom: 50%; transform: translateY(50%) rotate(-90deg); transform-origin: left bottom;',
-			'right-edge' => 'right: 0; bottom: 50%; transform: translateY(50%) rotate(90deg); transform-origin: right bottom;'
+		if ( ! $completed ) {
+			return '<!-- ProLeadsAI: Setup not completed -->';
+		}
+		
+		// Parse shortcode attributes with defaults from settings
+		$atts = shortcode_atts( array(
+			'heading' => $settings['shortcode_heading'] ?? '',
+			'bg' => $settings['shortcode_bg_style'] ?? 'none',
+			'image' => null, // null means use settings default
+			'mt' => $settings['shortcode_margin_top'] ?? '',
+			'mb' => $settings['shortcode_margin_bottom'] ?? '',
+		), $atts, 'proleadsai_widget' );
+		
+		// Enqueue scripts/styles for shortcode usage
+		$this->enqueue_shortcode_assets();
+		
+		// Determine background style and color
+		$bg_style = 'none';
+		$bg_color = '#f5f5f4';
+		
+		if ( in_array( $atts['bg'], array( 'none', 'light', 'dark' ), true ) ) {
+			$bg_style = $atts['bg'];
+		} elseif ( preg_match( '/^#[0-9A-Fa-f]{3,6}$/', $atts['bg'] ) ) {
+			// It's a hex color
+			$bg_style = 'custom';
+			$bg_color = $atts['bg'];
+		} elseif ( $atts['bg'] === 'custom' ) {
+			$bg_style = 'custom';
+			$bg_color = $settings['shortcode_bg_color'] ?? '#f5f5f4';
+		}
+		
+		// Determine hero image
+		$hero_image = '';
+		if ( $atts['image'] === null ) {
+			// Use settings default
+			$image_setting = $settings['shortcode_image'] ?? 'default';
+			$custom_image = $settings['shortcode_custom_image'] ?? '';
+			
+			if ( $image_setting === 'none' ) {
+				$hero_image = 'none';
+			} elseif ( $image_setting === 'custom' && ! empty( $custom_image ) ) {
+				$hero_image = $custom_image;
+			}
+		} elseif ( $atts['image'] === 'none' ) {
+			$hero_image = 'none';
+		} elseif ( $atts['image'] === 'default' ) {
+			$hero_image = ''; // Uses widget default
+		} else {
+			// Custom URL provided in shortcode
+			$hero_image = $atts['image'];
+		}
+		
+		return $this->get_widget_html( 'inline', array(
+			'heading' => $atts['heading'],
+			'bg_style' => $bg_style,
+			'bg_color' => $bg_color,
+			'hero_image' => $hero_image,
+			'margin_top' => $atts['mt'],
+			'margin_bottom' => $atts['mb'],
+		) );
+	}
+
+	/**
+	 * Enqueue assets when shortcode is used
+	 */
+	private function enqueue_shortcode_assets() {
+		// Widget CSS
+		wp_enqueue_style(
+			$this->plugin_name . '-widget-css',
+			plugin_dir_url( __FILE__ ) . 'css/proleadsai-widget.css',
+			array(),
+			$this->version
 		);
 		
-		$pos_style = $position_styles[$position] ?? $position_styles['bottom-center'];
-		?>
-		<div id="proleadsai-widget-container">
-			<button 
-				id="proleadsai-widget-button"
-				style="
-					position: fixed;
-					bottom: 20px;
-					<?php echo $pos_style; ?>
-					background-color: <?php echo esc_attr( $primary_color ); ?>;
-					color: white;
-					border: none;
-					padding: 12px 24px;
-					border-radius: 50px;
-					font-size: 16px;
-					font-weight: 600;
-					cursor: pointer;
-					box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-					z-index: 9999;
-					display: flex;
-					align-items: center;
-					gap: 8px;
-					transition: transform 0.2s, box-shadow 0.2s;
-				"
-				onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.2)';"
-				onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';"
-			>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-					<polyline points="9 22 9 12 15 12 15 22"></polyline>
-				</svg>
-				Get Roof Estimate
-			</button>
-			
-			<!-- Modal will be injected here by JS -->
-			<div id="proleadsai-modal" style="display: none;"></div>
-		</div>
-		<?php
+		// Widget JS
+		wp_enqueue_script( 
+			$this->plugin_name . '-widget-ce', 
+			plugin_dir_url( __FILE__ ) . 'js/proleadsai-widget-ce.js', 
+			array(), 
+			$this->version, 
+			true 
+		);
+	}
+
+	/**
+	 * Generate widget HTML
+	 */
+	private function get_widget_html( $display_mode = 'floating', $extra_options = array() ) {
+		$settings = get_option( 'proleadsai_onboarding', array() );
+		
+		$button_position = $settings['button_position'] ?? 'bottom-right';
+		$primary_color = $settings['primary_color'] ?? '#facc15';
+		$text_color = $settings['text_color'] ?? '#1c1917';
+		$button_text = $settings['button_text'] ?? 'Get Roof Estimate';
+		$button_emoji = $settings['button_emoji'] ?? '🏠';
+		$org_id = $settings['team_id'] ?? '';
+		$google_maps_api_key = $settings['google_maps_api_key'] ?? '';
+		
+		// Extra attributes for inline/shortcode mode
+		$extra_attrs = '';
+		if ( ! empty( $extra_options['heading'] ) ) {
+			$extra_attrs .= sprintf( ' heading="%s"', esc_attr( $extra_options['heading'] ) );
+		}
+		if ( ! empty( $extra_options['bg_style'] ) ) {
+			$extra_attrs .= sprintf( ' bg-style="%s"', esc_attr( $extra_options['bg_style'] ) );
+		}
+		if ( ! empty( $extra_options['bg_color'] ) ) {
+			$extra_attrs .= sprintf( ' bg-color="%s"', esc_attr( $extra_options['bg_color'] ) );
+		}
+		if ( isset( $extra_options['hero_image'] ) ) {
+			$extra_attrs .= sprintf( ' hero-image="%s"', esc_attr( $extra_options['hero_image'] ) );
+		}
+		if ( ! empty( $extra_options['margin_top'] ) ) {
+			$extra_attrs .= sprintf( ' margin-top="%s"', esc_attr( $extra_options['margin_top'] ) );
+		}
+		if ( ! empty( $extra_options['margin_bottom'] ) ) {
+			$extra_attrs .= sprintf( ' margin-bottom="%s"', esc_attr( $extra_options['margin_bottom'] ) );
+		}
+		
+		$api_url = function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api';
+		
+		return sprintf(
+			'<roof-estimator
+				org-id="%s"
+				api-url="%s"
+				google-maps-api-key="%s"
+				primary-color="%s"
+				text-color="%s"
+				display-mode="%s"
+				button-text="%s"
+				button-emoji="%s"
+				button-position="%s"%s
+			></roof-estimator>',
+			esc_attr( $org_id ),
+			esc_attr( $api_url ),
+			esc_attr( $google_maps_api_key ),
+			esc_attr( $primary_color ),
+			esc_attr( $text_color ),
+			esc_attr( $display_mode ),
+			esc_attr( $button_text ),
+			esc_attr( $button_emoji ),
+			esc_attr( $button_position ),
+			$extra_attrs
+		);
 	}
 
 }

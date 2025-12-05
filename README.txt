@@ -1,114 +1,113 @@
-=== Plugin Name ===
-Contributors: (this should be a list of wordpress.org userid's)
+=== ProLeadsAI - Instant Roof Estimates ===
+Contributors: proleadsai
 Donate link: https://proleadsai.com/
-Tags: comments, spam
-Requires at least: 3.0.1
-Tested up to: 3.4
-Stable tag: 4.3
+Tags: roofing, lead generation, roof estimate, solar, google maps
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0.1
+Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Here is a short description of the plugin.  This should be no more than 150 characters.  No markup here.
+Add an instant roof estimate widget to your WordPress site. Visitors enter their address and get roof size, cost estimates, and pitch information.
 
 == Description ==
 
-This is the long description.  No limit, and you can use Markdown (as well as in the following sections).
+ProLeadsAI adds a powerful roof estimation tool to your WordPress site. When visitors enter their address, they instantly see:
 
-For backwards compatibility, if this section is missing, the full length of the short description will be used, and
-Markdown parsed.
+* **Roof Area** - Total square footage calculated from satellite imagery
+* **Cost Estimate** - Based on your configured price per square
+* **Roof Pitch** - Steepness classification (Flat, Low, Medium, Steep)
+* **Interactive Map** - Visual roof outline overlay
 
-A few notes about the sections above:
+The widget captures leads when visitors request a detailed quote, sending their contact info directly to your ProLeadsAI dashboard.
 
-*   "Contributors" is a comma separated list of wp.org/wp-plugins.org usernames
-*   "Tags" is a comma separated list of tags that apply to the plugin
-*   "Requires at least" is the lowest version that the plugin will work on
-*   "Tested up to" is the highest version that you've *successfully used to test the plugin*. Note that it might work on
-higher versions... this is just the highest one you've verified.
-*   Stable tag should indicate the Subversion "tag" of the latest stable version, or "trunk," if you use `/trunk/` for
-stable.
+= Features =
 
-    Note that the `readme.txt` of the stable tag is the one that is considered the defining one for the plugin, so
-if the `/trunk/readme.txt` file says that the stable tag is `4.3`, then it is `/tags/4.3/readme.txt` that'll be used
-for displaying information about the plugin.  In this situation, the only thing considered from the trunk `readme.txt`
-is the stable tag pointer.  Thus, if you develop in trunk, you can update the trunk `readme.txt` to reflect changes in
-your in-development version, without having that information incorrectly disclosed about the current stable version
-that lacks those changes -- as long as the trunk's `readme.txt` points to the correct stable tag.
+* Floating button or shortcode embed options
+* Customizable colors to match your brand
+* Mobile-responsive design
+* Lead capture with contact form
+* Integration with ProLeadsAI dashboard for lead management
 
-    If no stable tag is provided, it is assumed that trunk is stable, but you should specify "trunk" if that's where
-you put the stable version, in order to eliminate any doubt.
+= Requirements =
+
+* ProLeadsAI account (free to create at proleadsai.com)
+* Google Maps API key with the following APIs enabled:
+  * Maps JavaScript API
+  * Places API
+  * Geocoding API
+  * Solar API
 
 == Installation ==
 
-This section describes how to install the plugin and get it working.
+1. Upload the `proleadsai` folder to `/wp-content/plugins/`
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Go to ProLeadsAI in the admin menu to complete setup
+4. Create or connect your ProLeadsAI account
+5. Add your Google Maps API key (see FAQ for setup instructions)
+6. Configure your price per square foot and appearance settings
 
-e.g.
+= Shortcode Usage =
 
-1. Upload `proleadsai.php` to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Place `<?php do_action('plugin_name_hook'); ?>` in your templates
+Embed the widget anywhere using:
+
+`[proleadsai_widget]`
+
+Or with custom options:
+
+`[proleadsai_widget position="bottom-right" display="true"]`
 
 == Frequently Asked Questions ==
 
-= A question that someone might have =
+= How do I get a Google Maps API key? =
 
-An answer to that question.
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a new project or select an existing one
+3. Enable these APIs: Maps JavaScript API, Places API, Geocoding API, Solar API
+4. Go to Credentials > Create Credentials > API Key
+5. Configure HTTP referrer restrictions for your domain
+6. Copy the key to your ProLeadsAI settings
 
-= What about foo bar? =
+= Why do I need my own Google API key? =
 
-Answer to foo bar dilemma.
+Each WordPress site uses its own Google API key so you can:
+* Control your own API costs and usage limits
+* Monitor usage in your Google Cloud Console
+* Keep billing separate from the ProLeadsAI service
+
+= How accurate are the roof estimates? =
+
+Estimates are based on Google's Solar API satellite imagery data. They provide a good starting point but actual costs may vary based on roof complexity, materials chosen, and local labor rates.
+
+= Can I customize the widget appearance? =
+
+Yes! You can set primary and secondary colors, button position, and whether to show the floating button or use shortcode placement only.
 
 == Screenshots ==
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
-the /assets directory or the directory that contains the stable readme.txt (tags or trunk). Screenshots in the /assets
-directory take precedence. For example, `/assets/screenshot-1.png` would win over `/tags/4.3/screenshot-1.png`
-(or jpg, jpeg, gif).
-2. This is the second screen shot
+1. Roof estimate results with interactive map
+2. Admin settings page
+3. Floating widget button
+4. Lead capture form
 
 == Changelog ==
 
-= 1.0 =
-* A change since the previous version.
-* Another change.
+= 1.0.1 =
+* Fixed: Modal/slide-out shadow overlay now properly clears when closing
+* Fixed: Backend now uses organization's Google Maps API key for Solar API calls
+* Improved: Better error messages when API key is not configured
 
-= 0.5 =
-* List versions from most recent at top to oldest at bottom.
+= 1.0.0 =
+* Initial release
+* Instant roof estimates from address input
+* Google Places autocomplete for address search
+* Interactive roof outline map
+* Lead capture form
+* Customizable appearance settings
+* Floating button and shortcode options
 
 == Upgrade Notice ==
 
-= 1.0 =
-Upgrade notices describe the reason a user should upgrade.  No more than 300 characters.
-
-= 0.5 =
-This version fixes a security related bug.  Upgrade immediately.
-
-== Arbitrary section ==
-
-You may provide arbitrary sections, in the same format as the ones above.  This may be of use for extremely complicated
-plugins where more information needs to be conveyed that doesn't fit into the categories of "description" or
-"installation."  Arbitrary sections will be shown below the built-in sections outlined above.
-
-== A brief Markdown Example ==
-
-Ordered list:
-
-1. Some feature
-1. Another feature
-1. Something else about the plugin
-
-Unordered list:
-
-* something
-* something else
-* third thing
-
-Here's a link to [WordPress](http://wordpress.org/ "Your favorite software") and one to [Markdown's Syntax Documentation][markdown syntax].
-Titles are optional, naturally.
-
-[markdown syntax]: http://daringfireball.net/projects/markdown/syntax
-            "Markdown is what the parser uses to process much of the readme file"
-
-Markdown uses email style notation for blockquotes and I've been told:
-> Asterisks for *emphasis*. Double it up  for **strong**.
-
-`<?php code(); // goes in backticks ?>`
+= 1.0.1 =
+Fixes overlay display issues and ensures your Google API key is used for all API calls.

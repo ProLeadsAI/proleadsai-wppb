@@ -1,42 +1,34 @@
 <template>
-  <div class="p-6 max-w-2xl mx-auto">
-    <!-- Reset Button (for testing) -->
-    <div class="mb-4 text-right">
-      <Button variant="destructive" size="sm" @click="resetData">
-        Reset All Data
-      </Button>
+  <div class="min-h-[80vh] flex flex-col items-center justify-center p-6 bg-background text-foreground">
+    <!-- Logo/Brand -->
+    <div class="mb-8 text-center">
+      <h1 class="text-2xl font-bold text-foreground">ProLeads AI</h1>
+      <p class="text-sm text-muted-foreground mt-1">Setup your roof estimation widget</p>
     </div>
 
-    <!-- Progress Steps -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between">
+    <!-- Progress Steps - Compact -->
+    <div class="mb-6 w-full max-w-md">
+      <div class="flex items-center justify-center gap-2">
         <template v-for="(stepName, index) in steps" :key="index">
-          <div class="flex items-center">
-            <div 
-              :class="[
-                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
-                currentStep > index ? 'bg-green-500 text-white' :
-                currentStep === index ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-              ]"
-            >
-              <Check v-if="currentStep > index" class="w-4 h-4" />
-              <span v-else>{{ index + 1 }}</span>
-            </div>
-            <span class="ml-2 text-sm font-medium text-muted-foreground hidden sm:inline">{{ stepName }}</span>
+          <div 
+            :class="[
+              'w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300',
+              currentStep > index ? 'bg-green-500 text-white scale-90' :
+              currentStep === index ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' : 'bg-muted text-muted-foreground'
+            ]"
+          >
+            <Check v-if="currentStep > index" class="w-4 h-4" />
+            <span v-else>{{ index + 1 }}</span>
           </div>
-          <div v-if="index < steps.length - 1" class="flex-1 h-0.5 mx-4 bg-muted overflow-hidden">
-            <div :class="['h-full bg-primary transition-all duration-300', currentStep > index ? 'w-full' : 'w-0']"></div>
-          </div>
+          <div v-if="index < steps.length - 1" :class="['w-12 h-1 rounded-full transition-colors duration-300', currentStep > index ? 'bg-green-500' : 'bg-muted']"></div>
         </template>
       </div>
+      <p class="text-center text-sm text-muted-foreground mt-3">{{ steps[currentStep] }}</p>
     </div>
 
-    <!-- Step Content -->
-    <Card>
-      <CardHeader>
-        <CardTitle>{{ steps[currentStep] }}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <!-- Step Content Card -->
+    <Card class="w-full max-w-md shadow-lg">
+      <CardContent class="p-6">
         <!-- Step 1: Email Verification -->
         <div v-if="currentStep === 0" class="space-y-4">
           <Alert v-if="error" variant="destructive">
@@ -57,6 +49,7 @@
                 placeholder="your@email.com"
                 :disabled="state.email_verified && !isChangingEmail"
                 class="flex-1"
+                @keyup.enter="!state.email_verified && state.email && cooldown <= 0 && sendVerificationCode()"
               />
               <Button 
                 v-if="state.email_verified && !isChangingEmail"
@@ -84,6 +77,7 @@
                 placeholder="Enter 6-digit code"
                 maxlength="6"
                 class="flex-1"
+                @keyup.enter="state.code.length >= 6 && verifyCode()"
               />
               <Button 
                 @click="verifyCode"
@@ -103,6 +97,7 @@
             <Input 
               v-model="state.business" 
               placeholder="Enter your business name"
+              @keyup.enter="state.business.trim() && nextStep()"
             />
           </div>
         </div>
@@ -114,6 +109,7 @@
             <Input 
               v-model="state.google_maps_api_key" 
               :placeholder="`AIzaSy... (allow ${siteDomain})`"
+              @keyup.enter="state.google_maps_api_key.trim() && nextStep()"
             />
             <p class="text-sm text-muted-foreground">
               <Button variant="link" class="p-0 h-auto text-primary" @click="showApiKeyHelp = true">
@@ -123,28 +119,101 @@
           </div>
           
           <!-- API Validation Results -->
-          <div v-if="apiValidation.checked" class="space-y-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p class="text-sm font-medium mb-3">API Key Validation</p>
-            <div class="flex items-center gap-2">
-              <div :class="apiValidation.places.valid ? 'text-green-600' : 'text-red-600'">
-                <CheckCircle v-if="apiValidation.places.valid" class="w-5 h-5" />
-                <XCircle v-else class="w-5 h-5" />
+          <div v-if="apiValidation.checked" class="space-y-3 p-4 bg-muted rounded-lg">
+            <p class="text-sm font-medium">API Key Validation</p>
+            
+            <!-- Places API -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div :class="apiValidation.places.valid ? 'text-green-600' : 'text-red-600'">
+                  <CheckCircle v-if="apiValidation.places.valid" class="w-5 h-5" />
+                  <XCircle v-else class="w-5 h-5" />
+                </div>
+                <span class="text-sm">Places API (Autocomplete)</span>
               </div>
-              <span class="text-sm">Places API (Autocomplete)</span>
+              <button 
+                v-if="!apiValidation.places.valid" 
+                @click="showApiFixModal = 'places'"
+                class="text-xs text-primary hover:underline"
+              >
+                How to fix →
+              </button>
             </div>
-            <p v-if="!apiValidation.places.valid && apiValidation.places.message" class="text-xs text-red-600 ml-7">
-              {{ apiValidation.places.message }}
-            </p>
-            <div class="flex items-center gap-2">
-              <div :class="apiValidation.solar.valid ? 'text-green-600' : 'text-red-600'">
-                <CheckCircle v-if="apiValidation.solar.valid" class="w-5 h-5" />
-                <XCircle v-else class="w-5 h-5" />
+            
+            <!-- Solar API -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div :class="apiValidation.solar.valid ? 'text-green-600' : 'text-red-600'">
+                  <CheckCircle v-if="apiValidation.solar.valid" class="w-5 h-5" />
+                  <XCircle v-else class="w-5 h-5" />
+                </div>
+                <span class="text-sm">Solar API (Roof Estimates)</span>
               </div>
-              <span class="text-sm">Solar API (Roof Estimates)</span>
+              <button 
+                v-if="!apiValidation.solar.valid" 
+                @click="showApiFixModal = 'solar'"
+                class="text-xs text-primary hover:underline"
+              >
+                How to fix →
+              </button>
             </div>
-            <p v-if="!apiValidation.solar.valid && apiValidation.solar.message" class="text-xs text-red-600 ml-7">
-              {{ apiValidation.solar.message }}
-            </p>
+          </div>
+          
+          <!-- API Fix Modal -->
+          <div v-if="showApiFixModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" @click.self="showApiFixModal = null">
+            <div class="bg-card text-card-foreground rounded-lg shadow-xl max-w-md w-full mx-4 border border-border">
+              <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-semibold">
+                    {{ showApiFixModal === 'places' ? 'Enable Places API' : 'Enable Solar API' }}
+                  </h3>
+                  <Button variant="ghost" size="sm" @click="showApiFixModal = null">✕</Button>
+                </div>
+                
+                <div class="space-y-4 text-sm">
+                  <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                    <p class="font-medium text-amber-800 dark:text-amber-200">Required Domains</p>
+                    <p class="text-amber-700 dark:text-amber-300 mt-1 text-xs">
+                      Add these domains to your API key restrictions:
+                    </p>
+                    <ul class="mt-2 space-y-1 text-xs">
+                      <li><code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">{{ siteDomain }}/*</code></li>
+                      <li><code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">{{ apiDomain }}/*</code></li>
+                    </ul>
+                  </div>
+
+                  <ol class="list-decimal list-inside space-y-2 text-muted-foreground">
+                    <li>Click the button below to open Google Cloud Console</li>
+                    <li>Make sure you're in the correct project</li>
+                    <li>Click <strong class="text-foreground">Enable</strong> if not already enabled</li>
+                    <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-primary hover:underline">API Credentials</a> and edit your API key</li>
+                    <li>Under <strong class="text-foreground">Website restrictions</strong>, add the domains above</li>
+                    <li>Save and wait 1-2 minutes for changes to propagate</li>
+                  </ol>
+
+                  <div class="flex gap-2 pt-2">
+                    <a 
+                      :href="showApiFixModal === 'places' 
+                        ? 'https://console.cloud.google.com/apis/library/places-backend.googleapis.com' 
+                        : 'https://console.cloud.google.com/apis/library/solar.googleapis.com'"
+                      target="_blank"
+                      class="flex-1"
+                    >
+                      <Button class="w-full">
+                        Open {{ showApiFixModal === 'places' ? 'Places' : 'Solar' }} API
+                      </Button>
+                    </a>
+                  </div>
+                  
+                  <button 
+                    @click="showApiFixModal = null; validateApiKey(true)"
+                    class="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    I've enabled it, re-validate →
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div v-if="isValidating" class="flex items-center gap-2 text-sm text-muted-foreground">
@@ -154,8 +223,8 @@
         </div>
 
         <!-- Google Maps API Key Help Modal -->
-        <div v-if="showApiKeyHelp" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showApiKeyHelp = false">
-          <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div v-if="showApiKeyHelp" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" @click.self="showApiKeyHelp = false">
+          <div class="bg-card text-card-foreground rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto border border-border">
             <div class="p-6">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold">How to Get a Google Maps API Key</h3>
@@ -164,21 +233,24 @@
               
               <div class="space-y-4 text-sm">
                 <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
-                  <p class="font-medium text-amber-800 dark:text-amber-200">Important: Domain Restriction</p>
-                  <p class="text-amber-700 dark:text-amber-300 mt-1">
-                    Make sure to add <code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">{{ siteDomain }}</code> to your API key's allowed domains.
+                  <p class="font-medium text-amber-800 dark:text-amber-200">Important: Allowed Domains</p>
+                  <p class="text-amber-700 dark:text-amber-300 mt-1 text-xs">
+                    Add these domains to your API key's allowed referrers:
                   </p>
+                  <ul class="mt-2 space-y-1 text-xs">
+                    <li><code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">{{ siteDomain }}/*</code></li>
+                    <li><code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">{{ apiDomain }}/*</code></li>
+                  </ul>
                 </div>
 
                 <ol class="list-decimal list-inside space-y-3">
                   <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-primary hover:underline">Google Cloud Console</a></li>
                   <li>Create a new project or select an existing one</li>
-                  <li>Enable the <strong>Maps JavaScript API</strong> and <strong>Geocoding API</strong></li>
+                  <li>Enable the <strong>Places API</strong> and <strong>Solar API</strong></li>
                   <li>Go to <strong>Credentials</strong> and click <strong>Create Credentials → API Key</strong></li>
                   <li>Click on your new API key to configure it</li>
                   <li>Under <strong>Application restrictions</strong>, select <strong>HTTP referrers</strong></li>
-                  <li>Add your domain: <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">{{ siteDomain }}/*</code></li>
-                  <li>Under <strong>API restrictions</strong>, restrict to Maps JavaScript API and Geocoding API</li>
+                  <li>Add both domains listed above</li>
                   <li>Click <strong>Save</strong> and copy your API key</li>
                 </ol>
 
@@ -234,34 +306,67 @@
         </div>
 
         <!-- Navigation Buttons -->
-        <div class="mt-6 flex justify-between">
+        <div class="mt-6 flex gap-3">
           <Button 
             v-if="currentStep > 0"
             @click="prevStep"
             variant="outline"
+            class="flex-1"
           >
-            <ChevronLeft class="w-4 h-4 mr-2" />
+            <ChevronLeft class="w-4 h-4 mr-1" />
             Back
           </Button>
-          <div v-else></div>
           <Button 
             @click="nextStep"
             :disabled="!canProceed"
+            :class="currentStep === 0 ? 'w-full' : 'flex-1'"
           >
-            {{ currentStep === steps.length - 1 ? 'Finish' : 'Next' }}
-            <ChevronRight v-if="currentStep < steps.length - 1" class="w-4 h-4 ml-2" />
+            {{ currentStep === steps.length - 1 ? 'Complete Setup' : 'Continue' }}
+            <ChevronRight v-if="currentStep < steps.length - 1" class="w-4 h-4 ml-1" />
           </Button>
         </div>
       </CardContent>
     </Card>
+
+    <!-- Reset link (dev only) -->
+    <button 
+      v-if="isDevMode"
+      @click="resetData" 
+      class="mt-6 text-xs text-muted-foreground hover:text-foreground transition-colors"
+    >
+      Reset setup data
+    </button>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, XCircle } from 'lucide-vue-next'
-import { Button, Input, Card, CardHeader, CardContent, CardTitle, Label, Select, Alert } from '@/components/ui'
-import { apiRequest, getApiUrl } from '@/lib/api'
+import { Button, Input, Card, CardContent, Label, Select, Alert } from '@/components/ui'
+import { BASE_URL, API_MODE } from '@/lib/api'
+
+// Check if dev mode
+const isDevMode = API_MODE === 'dev'
+
+// Extract domain from BASE_URL for display (e.g., "next.proleadsai.com" or "localhost:3000")
+const apiDomain = computed(() => {
+  try {
+    const url = new URL(BASE_URL)
+    return url.host
+  } catch {
+    return 'next.proleadsai.com'
+  }
+})
+
+// WordPress AJAX proxy helper
+async function wpAjax(action, data = {}) {
+  const res = await fetch(`${window.proleadsai_settings?.adminAjax || '/wp-admin/admin-ajax.php'}?action=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  return res.json()
+}
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) }
@@ -277,6 +382,7 @@ const codeSent = ref(false)
 const isChangingEmail = ref(false)
 const cooldown = ref(0)
 const showApiKeyHelp = ref(false)
+const showApiFixModal = ref(null) // 'places' | 'solar' | null
 const isValidating = ref(false)
 
 const apiValidation = reactive({
@@ -394,9 +500,7 @@ async function sendVerificationCode() {
   }, 1000)
 
   try {
-    const data = await apiRequest('/wordpress/auth/register', {
-      body: { email: state.email }
-    }, props.settings)
+    const data = await wpAjax('proleadsai_send_verification_email', { email: state.email })
     
     if (!data.success) {
       throw new Error(data.data?.message || 'Failed to send verification email')
@@ -416,9 +520,7 @@ async function verifyCode() {
   isLoading.value = true
 
   try {
-    const data = await apiRequest('/wordpress/auth/verify-otp', {
-      body: { email: state.email, code: state.code }
-    }, props.settings)
+    const data = await wpAjax('proleadsai_verify_otp', { email: state.email, code: state.code })
     
     if (!data.success) {
       throw new Error(data.data?.message || 'Invalid verification code')
@@ -446,56 +548,31 @@ async function verifyCode() {
 }
 
 async function fetchExistingOrg() {
-  console.log('[Onboarding] fetchExistingOrg called, user_id:', state.user_id)
-  if (!state.user_id) {
-    console.log('[Onboarding] No user_id, skipping fetchExistingOrg')
-    return
-  }
+  if (!state.user_id) return
   
   try {
-    const baseUrl = getApiUrl()
-    const url = `${baseUrl}/wordpress/auth/user-org?userId=${state.user_id}`
-    console.log('[Onboarding] Fetching existing org from:', url)
+    const data = await wpAjax('proleadsai_get_user_org', { userId: state.user_id })
     
-    const res = await fetch(url)
-    console.log('[Onboarding] Response status:', res.status)
-    
-    if (res.ok) {
-      const data = await res.json()
-      console.log('[Onboarding] Existing org data:', data)
+    if (data.success && data.data?.found && data.data?.organization) {
+      const org = data.data.organization
+      // Pre-fill with existing org data
+      state.business = org.name || ''
+      state.team_id = org.id || ''
+      if (org.googleMapsApiKey) state.google_maps_api_key = org.googleMapsApiKey
+      if (org.pricePerSq) state.price_per_sq = org.pricePerSq.toString()
+      if (org.timezone) state.timezone = org.timezone
       
-      if (data.found && data.organization) {
-        // Pre-fill with existing org data
-        state.business = data.organization.name || ''
-        state.team_id = data.organization.id || ''
-        if (data.organization.googleMapsApiKey) {
-          state.google_maps_api_key = data.organization.googleMapsApiKey
-        }
-        if (data.organization.pricePerSq) {
-          state.price_per_sq = data.organization.pricePerSq.toString()
-        }
-        if (data.organization.timezone) {
-          state.timezone = data.organization.timezone
-        }
-        
-        console.log('[Onboarding] Pre-filled state:', { business: state.business, team_id: state.team_id })
-        
-        // Save to WordPress
-        await saveState({
-          business: state.business,
-          team_id: state.team_id,
-          google_maps_api_key: state.google_maps_api_key,
-          price_per_sq: state.price_per_sq,
-          timezone: state.timezone
-        })
-      } else {
-        console.log('[Onboarding] No existing org found')
-      }
-    } else {
-      console.log('[Onboarding] Failed to fetch existing org, status:', res.status)
+      // Save to WordPress
+      await saveState({
+        business: state.business,
+        team_id: state.team_id,
+        google_maps_api_key: state.google_maps_api_key,
+        price_per_sq: state.price_per_sq,
+        timezone: state.timezone
+      })
     }
   } catch (e) {
-    console.error('[Onboarding] Failed to fetch existing org:', e)
+    console.error('Failed to fetch existing org:', e)
   }
 }
 
@@ -513,14 +590,12 @@ async function nextStep() {
     
     if (state.user_id) {
       try {
-        await apiRequest('/wordpress/auth/update-settings', {
-          body: {
-            userId: state.user_id,
-            businessName: state.business,
-            pricePerSq: parseInt(state.price_per_sq, 10) || 750,
-            timezone: state.timezone
-          }
-        }, props.settings)
+        await wpAjax('proleadsai_update_settings', {
+          userId: state.user_id,
+          businessName: state.business,
+          pricePerSq: parseInt(state.price_per_sq, 10) || 750,
+          timezone: state.timezone
+        })
       } catch (e) {
         console.error('Failed to save settings:', e)
       }
@@ -533,13 +608,10 @@ async function nextStep() {
   
   if (currentStep.value === 1) {
     try {
-      const data = await apiRequest('/wordpress/auth/create-business', {
-        body: {
-          userId: state.user_id,
-          businessName: state.business,
-          siteUrl: props.settings.siteUrl
-        }
-      }, props.settings)
+      const data = await wpAjax('proleadsai_create_business', {
+        userId: state.user_id,
+        businessName: state.business
+      })
       if (data.success && data.data) {
         state.auth_token = data.data.apiKey || ''
         state.team_id = data.data.team?.id || ''
@@ -568,12 +640,10 @@ async function nextStep() {
     await saveState({ google_maps_api_key: state.google_maps_api_key })
     if (state.user_id && state.google_maps_api_key) {
       try {
-        await apiRequest('/wordpress/auth/update-settings', {
-          body: {
-            userId: state.user_id,
-            googleMapsApiKey: state.google_maps_api_key
-          }
-        }, props.settings)
+        await wpAjax('proleadsai_update_settings', {
+          userId: state.user_id,
+          googleMapsApiKey: state.google_maps_api_key
+        })
       } catch (e) {
         console.error('Failed to save Google Maps API key:', e)
       }

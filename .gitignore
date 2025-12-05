@@ -32,6 +32,7 @@ pnpm-lock.yaml
 *.tmp
 *.temp
 .cache/
+vite.config.js.timestamp-*
 
 # Build output
 dist/

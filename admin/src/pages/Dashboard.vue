@@ -45,15 +45,11 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 class="text-2xl sm:text-3xl font-bold">Dashboard</h1>
         <div class="flex items-center gap-2">
-          <DateRangePicker v-model="dateRange" />
-          <Button variant="default" size="sm" @click="applyDateRange" :disabled="isLoadingData">
-            <Loader2 v-if="isLoadingData" class="w-4 h-4 mr-2 animate-spin" />
-            Apply
-          </Button>
-          <Button variant="outline" size="sm" @click="clearAuthToken">
+          <DateRangePicker v-model="dateRange" @apply="applyDateRange" />
+          <Button v-if="isDevMode" variant="outline" size="sm" @click="clearAuthToken">
             Clear Auth Token
           </Button>
-          <Button variant="destructive" size="sm" @click="resetData">
+          <Button v-if="isDevMode" variant="destructive" size="sm" @click="resetData">
             Reset Plugin Data
           </Button>
         </div>
@@ -132,6 +128,11 @@
                   <FileText class="h-3 w-3" />
                   Lead
                 </span>
+                <span v-else-if="search.convertedToLead" 
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                  <Search class="h-3 w-3" />
+                  → Lead
+                </span>
                 <span v-else 
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                   <Search class="h-3 w-3" />
@@ -207,7 +208,9 @@ import { Search, Users, FileText, Settings, DollarSign, MapPin, Loader2 } from '
 import { Button, Card, CardHeader, CardContent, CardTitle } from '@/components/ui'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import ReauthModal from '@/components/ReauthModal.vue'
-import { getApiUrl } from '@/lib/api'
+import { API_MODE } from '@/lib/api'
+
+const isDevMode = API_MODE === 'dev'
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) }
@@ -335,85 +338,25 @@ async function regenerateApiKey() {
 async function fetchSettingsFromApi() {
   console.log('[Dashboard] fetchSettingsFromApi called')
   try {
-    const baseUrl = getApiUrl()
-    const url = `${baseUrl}/wordpress/settings`
-    console.log('[Dashboard] Fetching settings from:', url)
+    const res = await fetch(`${props.settings.adminAjax}?action=proleadsai_proxy_get_settings`)
+    const response = await res.json()
     
-    const res = await fetch(url, {
-      headers: {
-        'x-api-key': state.auth_token,
-        'Accept': 'application/json'
-      }
-    })
+    console.log('[Dashboard] Settings response:', response)
     
-    console.log('[Dashboard] Settings response status:', res.status)
-    
-    if (res.ok) {
-      const data = await res.json()
-      console.log('[Dashboard] Settings data from API:', data)
-      console.log('[Dashboard] Current WordPress state:', { 
-        business: state.business, 
-        email: state.email, 
-        google_maps_api_key: state.google_maps_api_key ? '***' : null,
-        price_per_sq: state.price_per_sq,
-        timezone: state.timezone,
-        team_id: state.team_id
-      })
-      
-      // Track if anything changed (compare API values with WordPress state)
-      const changes = []
-      
-      if (data.name && data.name !== state.business) {
-        changes.push(`business: ${state.business} -> ${data.name}`)
-        state.business = data.name
-      }
-      if (data.email && data.email !== state.email) {
-        changes.push(`email: ${state.email} -> ${data.email}`)
-        state.email = data.email
-      }
-      if (data.googleMapsApiKey !== undefined && data.googleMapsApiKey !== state.google_maps_api_key) {
-        changes.push(`google_maps_api_key changed`)
-        state.google_maps_api_key = data.googleMapsApiKey || ''
-      }
-      if (data.pricePerSq !== undefined && data.pricePerSq.toString() !== state.price_per_sq) {
-        changes.push(`price_per_sq: ${state.price_per_sq} -> ${data.pricePerSq}`)
-        state.price_per_sq = data.pricePerSq.toString()
-      }
-      if (data.timezone && data.timezone !== state.timezone) {
-        changes.push(`timezone: ${state.timezone} -> ${data.timezone}`)
-        state.timezone = data.timezone
-      }
-      if (data.id && data.id !== state.team_id) {
-        changes.push(`team_id: ${state.team_id} -> ${data.id}`)
-        state.team_id = data.id
-      }
-      
-      // Sync changes to WordPress DB
-      if (changes.length > 0) {
-        console.log('[Dashboard] Changes detected:', changes)
-        console.log('[Dashboard] Syncing to WordPress...')
-        await fetch(`${props.settings.adminAjax}?action=proleadsai_onboarding_save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            business: state.business,
-            email: state.email,
-            google_maps_api_key: state.google_maps_api_key,
-            price_per_sq: state.price_per_sq,
-            timezone: state.timezone,
-            team_id: state.team_id
-          })
-        })
-        console.log('[Dashboard] WordPress DB synced')
-      } else {
-        console.log('[Dashboard] No changes detected, skipping sync')
-      }
+    if (response.success && response.data) {
+      const data = response.data
+      // Update local state from API response (WordPress already synced in PHP)
+      if (data.name) state.business = data.name
+      if (data.email) state.email = data.email
+      if (data.googleMapsApiKey !== undefined) state.google_maps_api_key = data.googleMapsApiKey || ''
+      if (data.pricePerSq !== undefined) state.price_per_sq = data.pricePerSq.toString()
+      if (data.timezone) state.timezone = data.timezone
+      if (data.id) state.team_id = data.id
     } else {
-      const errData = await res.json().catch(() => ({}))
-      console.error('[Dashboard] Settings fetch failed:', res.status, errData)
+      console.error('[Dashboard] Settings fetch failed:', response.data?.message)
     }
   } catch (e) {
-    console.error('[Dashboard] Failed to fetch settings from API:', e)
+    console.error('[Dashboard] Failed to fetch settings:', e)
   }
 }
 
@@ -449,24 +392,15 @@ async function fetchDashboardData() {
   isLoadingData.value = true
   try {
     const dateParams = getDateRangeParams()
+    const url = `${props.settings.adminAjax}?action=proleadsai_proxy_get_dashboard${dateParams}`
     
-    // Use WordPress-specific endpoint that accepts API key auth
-    const baseUrl = getApiUrl()
-    const url = `${baseUrl}/wordpress/dashboard?${dateParams.replace('&', '')}`
-    console.log('[Dashboard] Fetching dashboard data from:', url)
+    const res = await fetch(url)
+    const response = await res.json()
     
-    const res = await fetch(url, {
-      headers: {
-        'x-api-key': state.auth_token,
-        'Accept': 'application/json'
-      }
-    })
+    console.log('[Dashboard] Dashboard response:', response)
     
-    console.log('[Dashboard] Dashboard response status:', res.status)
-    
-    if (res.ok) {
-      const data = await res.json()
-      console.log('[Dashboard] Dashboard data:', data)
+    if (response.success && response.data) {
+      const data = response.data
       
       // Update stats
       stats.totalSearches = data.totalSearches || 0
@@ -483,11 +417,11 @@ async function fetchDashboardData() {
         estimate: a.estimate,
         name: a.name,
         userId: a.userId,
-        createdAt: a.createdAt
+        createdAt: a.createdAt,
+        convertedToLead: a.convertedToLead || false
       }))
     } else {
-      const errData = await res.json().catch(() => ({}))
-      console.error('[Dashboard] Dashboard fetch failed:', res.status, errData)
+      console.error('[Dashboard] Dashboard fetch failed:', response.data?.message)
     }
   } catch (e) {
     console.error('[Dashboard] Failed to fetch dashboard data:', e)

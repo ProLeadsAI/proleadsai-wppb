@@ -102,6 +102,11 @@
     window.addEventListener('proleadsai:modal-open', function() {
       closePanelKeepModal();
     });
+    
+    // Listen for modal close event to fully clean up
+    window.addEventListener('proleadsai:modal-close', function() {
+      cleanupPanel();
+    });
   }
   
   // Close panel but keep the widget mounted (modal is taking over)
@@ -121,6 +126,18 @@
     }
     
     // Restore body scroll since modal will handle its own
+    document.body.style.overflow = '';
+    isOpen = false;
+  }
+  
+  // Fully clean up panel and overlay elements
+  function cleanupPanel() {
+    const overlay = document.querySelector('.plai-panel-overlay');
+    if (overlay) overlay.remove();
+    if (panelElement) {
+      panelElement.remove();
+      panelElement = null;
+    }
     document.body.style.overflow = '';
     isOpen = false;
   }
