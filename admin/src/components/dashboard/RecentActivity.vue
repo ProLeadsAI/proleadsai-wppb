@@ -1,36 +1,81 @@
 <script setup>
-import { Search, FileText } from 'lucide-vue-next'
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui'
+import { computed, ref } from 'vue'
+import { Search, FileText, Lock, Sparkles, ExternalLink, Mail, Phone, User, HelpCircle, X } from 'lucide-vue-next'
+import { Card, CardHeader, CardContent, CardTitle, Button } from '@/components/ui'
+import { BASE_URL } from '@/lib/api'
 
-defineProps({
+const props = defineProps({
   searches: { type: Array, default: () => [] },
-  formatDate: { type: Function, required: true }
+  formatDate: { type: Function, required: true },
+  isPro: { type: Boolean, default: false },
+  slug: { type: String, default: '' }
 })
+
+const emit = defineEmits(['upgrade'])
+
+const showLegendModal = ref(false)
+
+const dashboardUrl = computed(() => {
+  const baseUrl = BASE_URL.replace(/\/$/, '')
+  return props.slug ? `${baseUrl}/${props.slug}/dashboard` : baseUrl
+})
+
+const getLeadUrl = (leadId) => {
+  if (!props.slug || !leadId) return null
+  const baseUrl = BASE_URL.replace(/\/$/, '')
+  return `${baseUrl}/${props.slug}/leads/${leadId}`
+}
 </script>
 
 <template>
   <Card>
-    <CardHeader>
-      <CardTitle>Recent Activity</CardTitle>
+    <CardHeader class="flex flex-row items-center justify-between">
+      <div class="flex items-center gap-2">
+        <CardTitle>Recent Activity</CardTitle>
+        <!-- Legend help button -->
+        <button 
+          @click="showLegendModal = true"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+          title="What do these icons mean?"
+        >
+          <HelpCircle class="w-4 h-4" />
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- View Leads button for Pro users -->
+        <a v-if="isPro && slug" :href="dashboardUrl" target="_blank">
+          <Button 
+            variant="outline" 
+            size="sm"
+            class="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+          >
+            <ExternalLink class="w-4 h-4 mr-1" />
+            View Leads
+          </Button>
+        </a>
+        <!-- Unlock Leads button for free users -->
+        <Button 
+          v-if="!isPro && searches.length > 0"
+          variant="outline" 
+          size="sm"
+          class="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+          @click="emit('upgrade')"
+        >
+          <Sparkles class="w-4 h-4 mr-1" />
+          Unlock Leads
+        </Button>
+      </div>
     </CardHeader>
     <CardContent>
       <div v-if="searches.length === 0" class="text-muted-foreground text-sm py-4 text-center">
         No activity yet
       </div>
       <div v-else class="space-y-3">
-        <div v-for="search in searches" :key="search.id" 
-          class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-          <!-- User ID Badge -->
-          <div v-if="search.userId" class="flex-shrink-0">
-            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-              {{ search.userId }}
-            </span>
-          </div>
-          <div v-else class="flex-shrink-0">
-            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full text-xs font-medium bg-gray-200 text-gray-500">
-              ?
-            </span>
-          </div>
+        <div 
+          v-for="search in searches" 
+          :key="search.id"
+          class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
           <!-- Type Badge -->
           <div class="flex-shrink-0">
             <span v-if="search.type === 'submission'" 
@@ -54,15 +99,111 @@ defineProps({
             <p class="text-sm font-medium truncate">{{ search.address }}</p>
             <p class="text-xs text-muted-foreground">
               {{ search.roofSqFt?.toLocaleString() }} sq ft · ${{ search.estimate?.toLocaleString() }}
-              <template v-if="search.name"> · {{ search.name }}</template>
             </p>
+            <!-- Contact Info: name, email, phone -->
+            <div v-if="search.name || search.email || search.phone" class="mt-1 text-xs">
+              <!-- Name always visible -->
+              <span v-if="search.name" class="inline-flex items-center gap-1 text-gray-600">
+                <User class="w-3 h-3" /> {{ search.name }}
+              </span>
+              <!-- Pro users see email/phone -->
+              <template v-if="isPro">
+                <span v-if="search.email" class="inline-flex items-center gap-1 ml-2 text-gray-500">
+                  <Mail class="w-3 h-3" /> {{ search.email }}
+                </span>
+                <span v-if="search.phone" class="inline-flex items-center gap-1 ml-2 text-gray-500">
+                  <Phone class="w-3 h-3" /> {{ search.phone }}
+                </span>
+              </template>
+              <!-- Free users see blurred email/phone with icons, clickable to upgrade -->
+              <template v-else-if="search.name">
+                <span 
+                  class="inline-flex items-center gap-1 ml-2 text-gray-400 cursor-pointer hover:text-gray-500"
+                  @click="emit('upgrade')"
+                >
+                  <Mail class="w-3 h-3" />
+                  <span class="blur-[2px] select-none">{{ search.name?.split(' ')[0]?.toLowerCase() }}@gmail.com</span>
+                  <Lock class="w-3 h-3 text-gray-400" />
+                </span>
+                <span 
+                  class="inline-flex items-center gap-1 ml-2 text-gray-400 cursor-pointer hover:text-gray-500"
+                  @click="emit('upgrade')"
+                >
+                  <Phone class="w-3 h-3" />
+                  <span class="blur-[2px] select-none">(555) 123-4567</span>
+                  <Lock class="w-3 h-3 text-gray-400" />
+                </span>
+              </template>
+            </div>
           </div>
-          <!-- Time -->
-          <div class="text-xs text-muted-foreground whitespace-nowrap">
-            {{ formatDate(search.createdAt) }}
+          <!-- Time & View Button -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs text-muted-foreground whitespace-nowrap">
+              {{ formatDate(search.createdAt) }}
+            </span>
+            <!-- View Lead button for Pro users with leadId -->
+            <a 
+              v-if="isPro && search.leadId" 
+              :href="getLeadUrl(search.leadId)" 
+              target="_blank"
+              class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded hover:bg-emerald-100 transition-colors"
+              @click.stop
+            >
+              <ExternalLink class="w-3 h-3" />
+              View
+            </a>
           </div>
         </div>
       </div>
     </CardContent>
   </Card>
+
+  <!-- Legend Modal -->
+  <Teleport to="body">
+    <div 
+      v-if="showLegendModal" 
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+      @click.self="showLegendModal = false"
+    >
+      <Card class="w-full max-w-sm relative">
+        <!-- Close button -->
+        <button 
+          @click="showLegendModal = false"
+          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          <X class="w-5 h-5" />
+        </button>
+
+        <CardHeader>
+          <CardTitle class="text-lg">Activity Legend</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <!-- Search -->
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 whitespace-nowrap flex-shrink-0">
+              <Search class="h-3 w-3" />
+              Search
+            </span>
+            <p class="text-sm text-gray-600">A visitor searched an address using your roof estimator tool.</p>
+          </div>
+          <!-- Converted -->
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 whitespace-nowrap flex-shrink-0">
+              <Search class="h-3 w-3" />
+              → Lead
+            </span>
+            <p class="text-sm text-gray-600">A search that later converted into a lead submission.</p>
+          </div>
+          <!-- Lead -->
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 whitespace-nowrap flex-shrink-0">
+              <FileText class="h-3 w-3" />
+              Lead
+            </span>
+            <p class="text-sm text-gray-600">A visitor submitted their contact info to request a quote.</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </Teleport>
 </template>

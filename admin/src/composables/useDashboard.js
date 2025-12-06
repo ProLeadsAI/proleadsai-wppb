@@ -11,11 +11,15 @@ export function useDashboard(settings) {
     email: '',
     user_id: '',
     business: '',
+    slug: '',
     google_maps_api_key: '',
     price_per_sq: '750',
     timezone: 'America/New_York',
     team_id: '',
-    auth_token: ''
+    auth_token: '',
+    isPro: false,
+    plan: 'free',
+    subscriptionStatus: null
   })
 
   const stats = reactive({
@@ -100,11 +104,16 @@ export function useDashboard(settings) {
       if (response.success && response.data) {
         const data = response.data
         if (data.name) state.business = data.name
+        if (data.slug) state.slug = data.slug
         if (data.email) state.email = data.email
         if (data.googleMapsApiKey !== undefined) state.google_maps_api_key = data.googleMapsApiKey || ''
         if (data.pricePerSq !== undefined) state.price_per_sq = data.pricePerSq.toString()
         if (data.timezone) state.timezone = data.timezone
         if (data.id) state.team_id = data.id
+        // Subscription info
+        state.isPro = !!data.isPro
+        state.plan = data.plan || 'free'
+        state.subscriptionStatus = data.subscriptionStatus || null
       } else {
         console.error('[Dashboard] Settings fetch failed:', response.data?.message)
       }
@@ -137,6 +146,9 @@ export function useDashboard(settings) {
           roofSqFt: a.roofAreaSqFt,
           estimate: a.estimate,
           name: a.name,
+          email: a.email,
+          phone: a.phone,
+          leadId: a.leadId,
           userId: a.userId,
           createdAt: a.createdAt,
           convertedToLead: a.convertedToLead || false

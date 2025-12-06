@@ -23,7 +23,13 @@
       <StatsCards :stats="stats" />
 
       <!-- Recent Activity -->
-      <RecentActivity :searches="recentSearches" :format-date="formatDate" />
+      <RecentActivity 
+        :searches="recentSearches" 
+        :format-date="formatDate"
+        :is-pro="state.isPro"
+        :slug="state.slug"
+        @upgrade="showUpgradeModal = true"
+      />
 
       <!-- Account Info -->
       <AccountInfo :state="state" @edit-settings="goToSettings" />
@@ -38,19 +44,29 @@
       @close="showReauthModal = false"
       @success="handleReauthSuccess"
     />
+
+    <!-- Upgrade Modal -->
+    <UpgradeModal 
+      :show="showUpgradeModal"
+      :email="state.email"
+      :slug="state.slug"
+      @close="showUpgradeModal = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Button } from '@/components/ui'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { StatsCards, RecentActivity, AccountInfo, DashboardSkeleton } from '@/components/dashboard'
 import ReauthModal from '@/components/ReauthModal.vue'
+import UpgradeModal from '@/components/UpgradeModal.vue'
 import { useDashboard } from '@/composables/useDashboard'
 import { API_MODE } from '@/lib/api'
 
 const isDevMode = API_MODE === 'dev'
+const showUpgradeModal = ref(false)
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) }

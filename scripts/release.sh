@@ -63,8 +63,8 @@ echo -e "${YELLOW}📋 Copying plugin files...${NC}"
 cp "$PLUGIN_DIR/proleadsai.php" "$BUILD_DIR/$PLUGIN_NAME/"
 cp "$PLUGIN_DIR/uninstall.php" "$BUILD_DIR/$PLUGIN_NAME/"
 cp "$PLUGIN_DIR/index.php" "$BUILD_DIR/$PLUGIN_NAME/"
-cp "$PLUGIN_DIR/README.txt" "$BUILD_DIR/$PLUGIN_NAME/"
-cp "$PLUGIN_DIR/LICENSE.txt" "$BUILD_DIR/$PLUGIN_NAME/"
+cp "$PLUGIN_DIR/readme.txt" "$BUILD_DIR/$PLUGIN_NAME/"
+cp "$PLUGIN_DIR/license.txt" "$BUILD_DIR/$PLUGIN_NAME/"
 
 # Includes
 cp -r "$PLUGIN_DIR/includes" "$BUILD_DIR/$PLUGIN_NAME/"
@@ -74,7 +74,6 @@ mkdir -p "$BUILD_DIR/$PLUGIN_NAME/admin"
 cp "$PLUGIN_DIR/admin/class-proleadsai-admin.php" "$BUILD_DIR/$PLUGIN_NAME/admin/"
 cp "$PLUGIN_DIR/admin/index.php" "$BUILD_DIR/$PLUGIN_NAME/admin/"
 cp -r "$PLUGIN_DIR/admin/dist" "$BUILD_DIR/$PLUGIN_NAME/admin/"
-
 # Public
 mkdir -p "$BUILD_DIR/$PLUGIN_NAME/public/js" "$BUILD_DIR/$PLUGIN_NAME/public/css"
 cp "$PLUGIN_DIR/public/class-proleadsai-public.php" "$BUILD_DIR/$PLUGIN_NAME/public/"
@@ -91,7 +90,7 @@ fi
 # Step 6: Update version in plugin header
 echo -e "${YELLOW}📝 Updating version to ${VERSION}...${NC}"
 sed -i '' "s/Version:.*$/Version:           ${VERSION}/" "$BUILD_DIR/$PLUGIN_NAME/proleadsai.php"
-sed -i '' "s/Stable tag:.*$/Stable tag: ${VERSION}/" "$BUILD_DIR/$PLUGIN_NAME/README.txt"
+sed -i '' "s/Stable tag:.*$/Stable tag: ${VERSION}/" "$BUILD_DIR/$PLUGIN_NAME/readme.txt"
 
 # Step 7: Create ZIP
 echo -e "${YELLOW}📦 Creating release ZIP...${NC}"

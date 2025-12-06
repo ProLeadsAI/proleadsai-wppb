@@ -1,7 +1,7 @@
 === ProLeadsAI - Instant Roof Estimates ===
 Contributors: proleadsai
 Donate link: https://proleadsai.com/
-Tags: roofing, lead generation, roof estimate, solar, google maps
+Tags: roofing, lead generation, roof estimate, google maps
 Requires at least: 5.0
 Tested up to: 6.4
 Stable tag: 1.0.1
@@ -14,6 +14,28 @@ Add an instant roof estimate widget to your WordPress site. Visitors enter their
 == Description ==
 
 ProLeadsAI adds a powerful roof estimation tool to your WordPress site. When visitors enter their address, they instantly see:
+
+= External Services =
+
+This plugin connects to the following external services:
+
+**ProLeadsAI API** (https://next.proleadsai.com)
+
+* Used for: User authentication, lead management, roof estimation data processing, and dashboard analytics
+* Data sent: Address searches, lead contact information (name, email, phone), roof estimation requests
+* When: During plugin setup, when visitors use the roof estimator, and when leads submit contact forms
+* Terms of Service: https://proleadsai.com/terms
+* Privacy Policy: https://proleadsai.com/privacy
+
+**Google Maps Platform APIs**
+
+* Used for: Address autocomplete, geocoding, satellite imagery for roof analysis, and Solar API for roof measurements
+* Data sent: Address queries, geographic coordinates
+* When: When visitors search for an address or view roof estimates
+* Terms of Service: https://cloud.google.com/maps-platform/terms
+* Privacy Policy: https://policies.google.com/privacy
+
+By installing and activating this plugin, you agree to the terms of service of these external services.
 
 * **Roof Area** - Total square footage calculated from satellite imagery
 * **Cost Estimate** - Based on your configured price per square
@@ -78,7 +100,7 @@ Each WordPress site uses its own Google API key so you can:
 
 = How accurate are the roof estimates? =
 
-Estimates are based on Google's Solar API satellite imagery data. They provide a good starting point but actual costs may vary based on roof complexity, materials chosen, and local labor rates.
+Estimates are based on Google's satellite imagery data. They provide a good starting point but actual costs may vary based on roof complexity, materials chosen, and local labor rates.
 
 = Can I customize the widget appearance? =
 
@@ -111,3 +133,37 @@ Yes! You can set primary and secondary colors, button position, and whether to s
 
 = 1.0.1 =
 Fixes overlay display issues and ensures your Google API key is used for all API calls.
+
+== Privacy Policy ==
+
+ProLeadsAI respects user privacy and is designed with privacy in mind.
+
+= Data Collection =
+
+**Site Visitors:**
+* Address searches entered into the roof estimator widget
+* Contact information (name, email, phone) when voluntarily submitted via the lead capture form
+* No tracking cookies or analytics are used
+
+**Site Administrators:**
+* Email address used for ProLeadsAI account authentication
+* Organization settings and preferences
+
+= Data Storage =
+
+* Visitor data (searches and leads) is stored on ProLeadsAI servers (https://next.proleadsai.com)
+* Data is associated with your organization account and accessible via your dashboard
+* No visitor data is stored in the WordPress database
+
+= Data Sharing =
+
+* Address data is sent to Google Maps APIs for geocoding and roof analysis
+* No data is sold or shared with third parties for marketing purposes
+
+= User Rights =
+
+* Site visitors can request deletion of their data by contacting the site owner
+* Site owners can delete leads from their ProLeadsAI dashboard
+* Account deletion requests can be made at https://proleadsai.com/contact
+
+For the full privacy policy, visit: https://proleadsai.com/privacy

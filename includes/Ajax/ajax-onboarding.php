@@ -96,9 +96,35 @@ function proleadsai_curl_ssl_fix($args, $url) {
 }
 
 /**
+ * Verify nonce and capability for AJAX requests
+ */
+function proleadsai_verify_ajax_request() {
+    // Check nonce from header or POST data
+    $nonce = isset($_SERVER['HTTP_X_WP_NONCE']) ? $_SERVER['HTTP_X_WP_NONCE'] : '';
+    if (empty($nonce)) {
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+        $nonce = $data['_wpnonce'] ?? '';
+    }
+    
+    if (!wp_verify_nonce($nonce, 'wp_rest')) {
+        wp_send_json_error(array('message' => 'Security check failed'), 403);
+        exit;
+    }
+    
+    // Check user capability
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'Permission denied'), 403);
+        exit;
+    }
+}
+
+/**
  * Send verification email (OTP)
  */
 function proleadsai_send_verification_email() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -138,6 +164,8 @@ add_action('wp_ajax_proleadsai_send_verification_email', 'proleadsai_send_verifi
  * Verify OTP code
  */
 function proleadsai_verify_otp() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -178,6 +206,8 @@ add_action('wp_ajax_proleadsai_verify_otp', 'proleadsai_verify_otp');
  * Create business - creates org + API key
  */
 function proleadsai_create_business() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -222,6 +252,8 @@ add_action('wp_ajax_proleadsai_create_business', 'proleadsai_create_business');
  * Update organization settings (Google Maps API key, price per sq ft)
  */
 function proleadsai_update_settings() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -279,6 +311,8 @@ add_action('wp_ajax_proleadsai_update_settings', 'proleadsai_update_settings');
  * Get user's existing WordPress organization
  */
 function proleadsai_get_user_org() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -317,12 +351,30 @@ add_action('wp_ajax_proleadsai_get_user_org', 'proleadsai_get_user_org');
  * Save onboarding state locally
  */
 function proleadsai_onboarding_save() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
-    if (!empty($data)) {
+    if (!empty($data) && is_array($data)) {
+        // Sanitize each field
+        $sanitized = array();
+        foreach ($data as $key => $value) {
+            $key = sanitize_key($key);
+            if (is_string($value)) {
+                $sanitized[$key] = sanitize_text_field($value);
+            } elseif (is_bool($value)) {
+                $sanitized[$key] = (bool) $value;
+            } elseif (is_int($value)) {
+                $sanitized[$key] = intval($value);
+            } elseif (is_array($value)) {
+                // For nested arrays, sanitize recursively
+                $sanitized[$key] = array_map('sanitize_text_field', $value);
+            }
+        }
+        
         $current = get_option('proleadsai_onboarding', array());
-        $updated = array_merge($current, $data);
+        $updated = array_merge($current, $sanitized);
         update_option('proleadsai_onboarding', $updated);
     }
     
@@ -334,6 +386,8 @@ add_action('wp_ajax_proleadsai_onboarding_save', 'proleadsai_onboarding_save');
  * Get onboarding state
  */
 function proleadsai_onboarding_get() {
+    proleadsai_verify_ajax_request();
+    
     $data = get_option('proleadsai_onboarding', array());
     wp_send_json($data);
 }
@@ -343,6 +397,8 @@ add_action('wp_ajax_proleadsai_onboarding_get', 'proleadsai_onboarding_get');
  * Update organization settings
  */
 function proleadsai_update_organization() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -387,6 +443,8 @@ add_action('wp_ajax_proleadsai_update_organization', 'proleadsai_update_organiza
  * This ensures the API key works with the domain restrictions set by the user
  */
 function proleadsai_validate_api_key() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
@@ -482,6 +540,8 @@ add_action('wp_ajax_proleadsai_validate_api_key', 'proleadsai_validate_api_key')
  * Reset all plugin data (for testing)
  */
 function proleadsai_reset_data() {
+    proleadsai_verify_ajax_request();
+    
     delete_option('proleadsai_onboarding');
     delete_option('proleadsai_dev_api_url');
     wp_send_json_success(array('message' => 'All plugin data has been reset'));
@@ -492,10 +552,12 @@ add_action('wp_ajax_proleadsai_reset_data', 'proleadsai_reset_data');
  * Set dev API URL (for local development)
  */
 function proleadsai_set_dev_api_url() {
+    proleadsai_verify_ajax_request();
+    
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
-    $url = sanitize_text_field($data['url'] ?? '');
+    $url = esc_url_raw($data['url'] ?? '');
     
     if (empty($url)) {
         delete_option('proleadsai_dev_api_url');
@@ -512,6 +574,8 @@ add_action('wp_ajax_proleadsai_set_dev_api_url', 'proleadsai_set_dev_api_url');
  * Proxy: Get settings from Better Auth API
  */
 function proleadsai_proxy_get_settings() {
+    proleadsai_verify_ajax_request();
+    
     $settings = get_option('proleadsai_onboarding', array());
     $auth_token = $settings['auth_token'] ?? '';
     
@@ -569,6 +633,8 @@ add_action('wp_ajax_proleadsai_proxy_get_settings', 'proleadsai_proxy_get_settin
  * Proxy: Get dashboard data from Better Auth API
  */
 function proleadsai_proxy_get_dashboard() {
+    proleadsai_verify_ajax_request();
+    
     $settings = get_option('proleadsai_onboarding', array());
     $auth_token = $settings['auth_token'] ?? '';
     
@@ -624,6 +690,8 @@ add_action('wp_ajax_proleadsai_proxy_get_dashboard', 'proleadsai_proxy_get_dashb
  * Proxy: Save settings to Better Auth API
  */
 function proleadsai_proxy_save_settings() {
+    proleadsai_verify_ajax_request();
+    
     $settings = get_option('proleadsai_onboarding', array());
     $auth_token = $settings['auth_token'] ?? '';
     
