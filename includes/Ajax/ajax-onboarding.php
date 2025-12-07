@@ -359,10 +359,18 @@ function proleadsai_onboarding_save() {
     if (!empty($data) && is_array($data)) {
         // Sanitize each field
         $sanitized = array();
+        // Fields that can contain emojis (don't use sanitize_text_field which strips them)
+        $emoji_fields = array('button_emoji');
+        
         foreach ($data as $key => $value) {
             $key = sanitize_key($key);
             if (is_string($value)) {
-                $sanitized[$key] = sanitize_text_field($value);
+                if (in_array($key, $emoji_fields)) {
+                    // For emoji fields, just trim and limit length
+                    $sanitized[$key] = mb_substr(trim($value), 0, 10);
+                } else {
+                    $sanitized[$key] = sanitize_text_field($value);
+                }
             } elseif (is_bool($value)) {
                 $sanitized[$key] = (bool) $value;
             } elseif (is_int($value)) {

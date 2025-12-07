@@ -84,6 +84,7 @@ const emit = defineEmits(['save'])
                 <button type="button" @click="state.button_emoji = ''" class="px-3 py-2 border rounded-md hover:bg-gray-100 text-sm cursor-pointer">None</button>
               </div>
             </div>
+            <p class="text-xs text-gray-500">Note: Emoji appearance may vary on the frontend. Some WordPress themes use Twemoji which displays emojis in a different style than shown here.</p>
           </div>
 
           <!-- Button Preview -->
