@@ -37,3 +37,17 @@ export const IMAGE_OPTIONS = [
   { value: 'none', label: 'No Image' },
   { value: 'custom', label: 'Upload Custom Image' }
 ]
+
+export const GOOGLE_FONTS = [
+  { value: '', label: 'Default (System)' },
+  { value: 'Inter', label: 'Inter' },
+  { value: 'Roboto', label: 'Roboto' },
+  { value: 'Open Sans', label: 'Open Sans' },
+  { value: 'Lato', label: 'Lato' },
+  { value: 'Montserrat', label: 'Montserrat' },
+  { value: 'Poppins', label: 'Poppins' },
+  { value: 'Raleway', label: 'Raleway' },
+  { value: 'Nunito', label: 'Nunito' },
+  { value: 'Playfair Display', label: 'Playfair Display' },
+  { value: 'Oswald', label: 'Oswald' }
+]

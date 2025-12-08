@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { Button, Input, Card, CardHeader, CardContent, CardTitle, Label, Select } from '@/components/ui'
-import { MARGIN_PRESETS, BG_STYLES, IMAGE_OPTIONS } from '@/lib/constants'
+import { MARGIN_PRESETS, BG_STYLES, IMAGE_OPTIONS, GOOGLE_FONTS } from '@/lib/constants'
 
 const props = defineProps({
   state: { type: Object, required: true },
@@ -60,6 +60,22 @@ const shortcode = computed(() => {
   
   if (props.state.shortcode_margin_bottom) {
     parts.push(`mb="${props.state.shortcode_margin_bottom}"`)
+  }
+  
+  if (props.state.heading_font) {
+    parts.push(`heading-font="${props.state.heading_font}"`)
+  }
+  
+  if (props.state.heading_color && props.state.heading_color !== '#1c1917') {
+    parts.push(`heading-color="${props.state.heading_color}"`)
+  }
+  
+  if (props.state.text_font) {
+    parts.push(`text-font="${props.state.text_font}"`)
+  }
+  
+  if (props.state.text_color_shortcode && props.state.text_color_shortcode !== '#44403c') {
+    parts.push(`text-color="${props.state.text_color_shortcode}"`)
   }
   
   return parts.length > 1 ? parts.join(' ') + ']' : '[proleadsai_widget]'
@@ -170,6 +186,47 @@ const shortcode = computed(() => {
               placeholder="e.g. 50px, 3.5rem"
               class="mt-1"
             />
+          </div>
+        </div>
+
+        <!-- Typography Settings -->
+        <div class="border-t pt-6 mt-6">
+          <h4 class="font-medium mb-4">Typography</h4>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label>Heading Font</Label>
+              <Select v-model="state.heading_font">
+                <option v-for="font in GOOGLE_FONTS" :key="font.value" :value="font.value">
+                  {{ font.label }}
+                </option>
+              </Select>
+            </div>
+            <div class="space-y-2">
+              <Label>Heading Color</Label>
+              <div class="flex gap-2">
+                <input v-model="state.heading_color" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
+                <Input v-model="state.heading_color" class="w-28" />
+              </div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div class="space-y-2">
+              <Label>Body Text Font</Label>
+              <Select v-model="state.text_font">
+                <option v-for="font in GOOGLE_FONTS" :key="font.value" :value="font.value">
+                  {{ font.label }}
+                </option>
+              </Select>
+            </div>
+            <div class="space-y-2">
+              <Label>Body Text Color</Label>
+              <div class="flex gap-2">
+                <input v-model="state.text_color_shortcode" type="color" class="w-12 h-10 p-1 border rounded-md cursor-pointer" />
+                <Input v-model="state.text_color_shortcode" class="w-28" />
+              </div>
+            </div>
           </div>
         </div>
 

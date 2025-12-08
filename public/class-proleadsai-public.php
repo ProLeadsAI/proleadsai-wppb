@@ -137,6 +137,10 @@ class Proleadsai_Public {
 			'image' => null, // null means use settings default
 			'mt' => $settings['shortcode_margin_top'] ?? '',
 			'mb' => $settings['shortcode_margin_bottom'] ?? '',
+			'heading-font' => $settings['heading_font'] ?? '',
+			'heading-color' => $settings['heading_color'] ?? '',
+			'text-font' => $settings['text_font'] ?? '',
+			'text-color' => $settings['text_color_shortcode'] ?? '',
 		), $atts, 'proleadsai_widget' );
 		
 		// Enqueue scripts/styles for shortcode usage
@@ -185,6 +189,10 @@ class Proleadsai_Public {
 			'hero_image' => $hero_image,
 			'margin_top' => $atts['mt'],
 			'margin_bottom' => $atts['mb'],
+			'heading_font' => $atts['heading-font'],
+			'heading_color' => $atts['heading-color'],
+			'text_font' => $atts['text-font'],
+			'text_color' => $atts['text-color'],
 		) );
 	}
 
@@ -243,6 +251,19 @@ class Proleadsai_Public {
 		}
 		if ( ! empty( $extra_options['margin_bottom'] ) ) {
 			$extra_attrs .= sprintf( ' margin-bottom="%s"', esc_attr( $extra_options['margin_bottom'] ) );
+		}
+		// Typography
+		if ( ! empty( $extra_options['heading_font'] ) ) {
+			$extra_attrs .= sprintf( ' heading-font="%s"', esc_attr( $extra_options['heading_font'] ) );
+		}
+		if ( ! empty( $extra_options['heading_color'] ) ) {
+			$extra_attrs .= sprintf( ' heading-color="%s"', esc_attr( $extra_options['heading_color'] ) );
+		}
+		if ( ! empty( $extra_options['text_font'] ) ) {
+			$extra_attrs .= sprintf( ' text-font="%s"', esc_attr( $extra_options['text_font'] ) );
+		}
+		if ( ! empty( $extra_options['text_color'] ) ) {
+			$extra_attrs .= sprintf( ' text-color="%s"', esc_attr( $extra_options['text_color'] ) );
 		}
 		
 		$api_url = function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api';

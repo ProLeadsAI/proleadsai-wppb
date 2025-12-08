@@ -32,7 +32,12 @@ export function useSettings(settings, emit) {
     shortcode_image: 'default',
     shortcode_custom_image: '',
     shortcode_margin_top: '',
-    shortcode_margin_bottom: ''
+    shortcode_margin_bottom: '',
+    // Typography
+    heading_font: '',
+    heading_color: '#1c1917',
+    text_font: '',
+    text_color_shortcode: '#44403c'
   })
 
   const { isValidating, apiValidation, initValidation, validateApiKey } = useApiValidation(settings)
@@ -152,7 +157,11 @@ export function useSettings(settings, emit) {
         shortcode_image: state.shortcode_image,
         shortcode_custom_image: state.shortcode_custom_image,
         shortcode_margin_top: state.shortcode_margin_top,
-        shortcode_margin_bottom: state.shortcode_margin_bottom
+        shortcode_margin_bottom: state.shortcode_margin_bottom,
+        heading_font: state.heading_font,
+        heading_color: state.heading_color,
+        text_font: state.text_font,
+        text_color_shortcode: state.text_color_shortcode
       }, settings)
       
       success.value = 'Shortcode settings saved!'
