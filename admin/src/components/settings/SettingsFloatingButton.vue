@@ -12,7 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['save', 'open-media'])
 
 const HEADING_SIZE_PRESETS = [
-  { value: '', label: 'Default' },
+  { value: '', label: 'Default (1.5rem)' },
   { value: '32px', label: 'Small (32px)' },
   { value: '40px', label: 'Medium (40px)' },
   { value: '48px', label: 'Large (48px)' },
@@ -21,7 +21,7 @@ const HEADING_SIZE_PRESETS = [
 ]
 
 const TEXT_SIZE_PRESETS = [
-  { value: '', label: 'Default' },
+  { value: '', label: 'Default (1rem)' },
   { value: '14px', label: 'Small (14px)' },
   { value: '16px', label: 'Normal (16px)' },
   { value: '18px', label: 'Large (18px)' },

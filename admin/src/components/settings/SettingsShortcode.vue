@@ -17,7 +17,7 @@ const marginTopPreset = ref('')
 const marginBottomPreset = ref('')
 
 const HEADING_SIZE_PRESETS = [
-  { value: '', label: 'Default' },
+  { value: '', label: 'Default (2.25rem)' },
   { value: '32px', label: 'Small (32px)' },
   { value: '40px', label: 'Medium (40px)' },
   { value: '48px', label: 'Large (48px)' },
@@ -26,7 +26,7 @@ const HEADING_SIZE_PRESETS = [
 ]
 
 const TEXT_SIZE_PRESETS = [
-  { value: '', label: 'Default' },
+  { value: '', label: 'Default (1.125rem)' },
   { value: '14px', label: 'Small (14px)' },
   { value: '16px', label: 'Normal (16px)' },
   { value: '18px', label: 'Large (18px)' },
@@ -77,7 +77,7 @@ watch(textSizePreset, (val) => {
 const shortcode = computed(() => {
   const parts = ['[proleadsai_widget']
   
-  if (props.state.shortcode_heading) {
+  if (props.state.shortcode_heading && props.state.shortcode_heading !== 'Free Roof Estimate Instantly') {
     parts.push(`heading="${props.state.shortcode_heading}"`)
   }
   
