@@ -46,6 +46,7 @@
                 placeholder="Enter 6-digit code"
                 maxlength="6"
                 class="flex-1"
+                @keyup.enter="code.length >= 6 && !isLoading && verifyCode()"
               />
               <Button 
                 @click="verifyCode"

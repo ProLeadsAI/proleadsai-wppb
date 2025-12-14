@@ -3,8 +3,8 @@ Contributors: proleadsai
 Donate link: https://proleadsai.com/
 Tags: roofing, lead generation, roof estimate, google maps
 Requires at least: 5.0
-Tested up to: 6.4
-Stable tag: 1.0.1
+Tested up to: 6.7
+Stable tag: 1.0.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -114,6 +114,12 @@ Yes! You can set primary and secondary colors, button position, and whether to s
 4. Lead capture form
 
 == Changelog ==
+
+= 1.0.2 =
+* Improved: Settings page now auto-validates API keys when changed
+* Improved: Reset settings functionality
+* Improved: Upgrade modal styling
+* Fixed: Proper cleanup of plugin data on uninstall
 
 = 1.0.1 =
 * Fixed: Modal/slide-out shadow overlay now properly clears when closing

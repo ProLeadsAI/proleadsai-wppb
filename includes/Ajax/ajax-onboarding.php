@@ -41,58 +41,13 @@ function proleadsai_get_api_url() {
 function proleadsai_api_request($url, $args = array()) {
     $defaults = array(
         'timeout' => 30,
-        'sslverify' => false, // Disable SSL verification for compatibility
+        'sslverify' => true,
         'headers' => array('Content-Type' => 'application/json'),
     );
     
     $args = wp_parse_args($args, $defaults);
     
-    // Add cURL options for better SSL compatibility
-    add_filter('http_request_args', 'proleadsai_curl_ssl_fix', 10, 2);
-    
-    // Force cURL transport for better SSL handling
-    add_filter('http_api_transports', function($transports) {
-        return array('curl');
-    }, 10, 1);
-    
-    $response = wp_remote_request($url, $args);
-    
-    remove_filter('http_request_args', 'proleadsai_curl_ssl_fix', 10);
-    remove_filter('http_api_transports', '__return_empty_array', 10);
-    
-    return $response;
-}
-
-/**
- * Fix SSL compatibility issues with cURL
- */
-function proleadsai_curl_ssl_fix($args, $url) {
-    // Only apply to our API
-    if (strpos($url, 'proleadsai.com') !== false || strpos($url, 'next.proleadsai.com') !== false) {
-        $args['sslverify'] = false;
-        
-        // Add cURL-specific options if available (only when cURL extension is loaded)
-        if (function_exists('curl_version')) {
-            if (!isset($args['curl'])) {
-                $args['curl'] = array();
-            }
-            
-            // Use TLS 1.2 minimum
-            if (defined('CURLOPT_SSLVERSION') && defined('CURL_SSLVERSION_TLSv1_2')) {
-                $args['curl'][CURLOPT_SSLVERSION] = CURL_SSLVERSION_TLSv1_2;
-            }
-            
-            // Don't verify host
-            if (defined('CURLOPT_SSL_VERIFYHOST')) {
-                $args['curl'][CURLOPT_SSL_VERIFYHOST] = 0;
-            }
-            if (defined('CURLOPT_SSL_VERIFYPEER')) {
-                $args['curl'][CURLOPT_SSL_VERIFYPEER] = false;
-            }
-        }
-    }
-    
-    return $args;
+    return wp_remote_request($url, $args);
 }
 
 /**

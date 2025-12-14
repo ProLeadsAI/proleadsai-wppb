@@ -1,10 +1,12 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { wpAjax, loadState as loadFn, saveState as saveFn } from '@/lib/wpAjax'
 import { useApiValidation } from './useApiValidation'
+import { useAuth } from './useAuth'
 import { BASE_URL } from '@/lib/api'
 
 export function useSettings(settings, emit) {
-  const showReauthModal = ref(false)
+  const { showReauthModal, handleAuthError, checkAuthToken, handleReauthSuccess: baseHandleReauthSuccess } = useAuth(settings)
+  
   const showResetModal = ref(false)
   const isSaving = ref(false)
   const error = ref('')
@@ -169,8 +171,7 @@ export function useSettings(settings, emit) {
       if (!state.shortcode_heading) state.shortcode_heading = 'Free Roof Estimate Instantly'
       if (!state.sidebar_heading) state.sidebar_heading = 'Free Roof Estimate Instantly'
       
-      if (!state.auth_token) {
-        showReauthModal.value = true
+      if (checkAuthToken(state.auth_token)) {
         return
       }
       
@@ -183,6 +184,11 @@ export function useSettings(settings, emit) {
   async function fetchSettingsFromApi() {
     try {
       const response = await wpAjax('proleadsai_proxy_get_settings', {}, settings)
+      
+      // Check for auth errors
+      if (handleAuthError(response)) {
+        return
+      }
       
       if (response.success && response.data) {
         const data = response.data
@@ -338,18 +344,8 @@ export function useSettings(settings, emit) {
     }
   }
 
-  async function handleReauthSuccess({ userId, authToken, teamId }) {
-    state.user_id = userId
-    state.auth_token = authToken
-    if (teamId) state.team_id = teamId
-    
-    await saveFn({
-      user_id: state.user_id,
-      auth_token: state.auth_token,
-      team_id: state.team_id
-    }, settings)
-    
-    showReauthModal.value = false
+  async function handleReauthSuccess(credentials) {
+    await baseHandleReauthSuccess(credentials, state)
     await fetchSettingsFromApi()
   }
 

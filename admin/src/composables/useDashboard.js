@@ -1,10 +1,12 @@
 import { ref, reactive } from 'vue'
 import { wpAjax, loadState as loadFn, saveState as saveFn } from '@/lib/wpAjax'
+import { useAuth } from './useAuth'
 
 export function useDashboard(settings) {
+  const { showReauthModal, handleAuthError, checkAuthToken, handleReauthSuccess: baseHandleReauthSuccess } = useAuth(settings)
+  
   const isLoading = ref(false)
   const isLoadingData = ref(false)
-  const showReauthModal = ref(false)
   const dateRange = ref(null)
 
   const state = reactive({
@@ -78,10 +80,8 @@ export function useDashboard(settings) {
       
       console.log('[Dashboard] auth_token:', state.auth_token ? '***' + state.auth_token.slice(-8) : 'MISSING')
       
-      if (!state.auth_token) {
-        console.log('[Dashboard] No auth_token, showing reauth modal')
+      if (checkAuthToken(state.auth_token)) {
         isLoading.value = false
-        showReauthModal.value = true
         return
       }
       
@@ -100,6 +100,11 @@ export function useDashboard(settings) {
     try {
       const response = await wpAjax('proleadsai_proxy_get_settings', {}, settings)
       console.log('[Dashboard] Settings response:', response)
+      
+      // Check for auth errors
+      if (handleAuthError(response)) {
+        return
+      }
       
       if (response.success && response.data) {
         const data = response.data
@@ -155,6 +160,8 @@ export function useDashboard(settings) {
         }))
       } else {
         console.error('[Dashboard] Dashboard fetch failed:', response.data?.message)
+        // Check for auth errors
+        handleAuthError(response)
       }
     } catch (e) {
       console.error('[Dashboard] Failed to fetch dashboard data:', e)
@@ -169,21 +176,8 @@ export function useDashboard(settings) {
     }
   }
 
-  async function handleReauthSuccess({ userId, authToken, teamId }) {
-    console.log('[Dashboard] Reauth success, saving credentials...')
-    
-    state.user_id = userId
-    state.auth_token = authToken
-    if (teamId) state.team_id = teamId
-    
-    await saveFn({
-      user_id: state.user_id,
-      auth_token: state.auth_token,
-      team_id: state.team_id
-    }, settings)
-    
-    showReauthModal.value = false
-    
+  async function handleReauthSuccess(credentials) {
+    await baseHandleReauthSuccess(credentials, state)
     await fetchSettingsFromApi()
     await fetchDashboardData()
   }
