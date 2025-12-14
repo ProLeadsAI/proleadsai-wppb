@@ -275,6 +275,10 @@ function proleadsai_update_settings() {
     if (isset($data['googleMapsApiKey'])) {
         $body['googleMapsApiKey'] = sanitize_text_field($data['googleMapsApiKey']);
     }
+
+    if (isset($data['googleSolarApiKey'])) {
+        $body['googleSolarApiKey'] = sanitize_text_field($data['googleSolarApiKey']);
+    }
     
     if (isset($data['pricePerSq'])) {
         $body['pricePerSq'] = intval($data['pricePerSq']);
@@ -456,93 +460,112 @@ function proleadsai_validate_api_key() {
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     
+    $api_key = sanitize_text_field($data['apiKey'] ?? $data['placesApiKey'] ?? '');
+    $wp_base_url = sanitize_text_field($data['wpBaseUrl'] ?? '');
+    
+    if (empty($api_key)) {
+        wp_send_json_error(array('message' => 'API key is required'));
+        return;
+    }
+
+    if (empty($wp_base_url)) {
+        $wp_base_url = get_site_url();
+    }
+
+    $base_url = function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://next.proleadsai.com';
+    $endpoint = rtrim($base_url, '/') . '/api/wordpress/auth/validate-maps-key';
+
+    $response = proleadsai_api_request($endpoint, array(
+        'method' => 'POST',
+        'headers' => array('Content-Type' => 'application/json'),
+        'body' => wp_json_encode(array(
+            'apiKey' => $api_key,
+            'wpBaseUrl' => $wp_base_url,
+        )),
+        'timeout' => 20,
+    ));
+
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
+    }
+
+    $status_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $decoded = json_decode($body, true);
+
+    if ($status_code >= 400) {
+        wp_send_json_error(array('message' => $decoded['message'] ?? 'Failed to validate API key'));
+        return;
+    }
+
+    $results = $decoded['results'] ?? array();
+
+    // Determine overall success based on Places API validation
+    $success = true;
+    foreach ($results as $host => $checks) {
+        if (empty($checks['placesApi']['valid'])) {
+            $success = false;
+            break;
+        }
+    }
+
+    wp_send_json_success(array(
+        'success' => $success,
+        'results' => $results,
+    ));
+}
+add_action('wp_ajax_proleadsai_validate_api_key', 'proleadsai_validate_api_key');
+
+/**
+ * Validate Google Solar API Key via backend
+ * This tests the Solar API server-side since it doesn't have referrer restrictions
+ */
+function proleadsai_validate_solar_api() {
+    proleadsai_verify_ajax_request();
+    
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    
     $api_key = sanitize_text_field($data['apiKey'] ?? '');
     
     if (empty($api_key)) {
         wp_send_json_error(array('message' => 'API key is required'));
         return;
     }
-    
-    $results = array(
-        'placesApi' => array('valid' => false, 'message' => ''),
-        'solarApi' => array('valid' => false, 'message' => '')
-    );
-    
-    // Test Places Autocomplete API
-    $places_url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json?' . http_build_query(array(
-        'input' => '1600 Amphitheatre Parkway',
-        'types' => 'address',
-        'key' => $api_key
+
+    $base_url = function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://next.proleadsai.com';
+    $endpoint = rtrim($base_url, '/') . '/api/wordpress/auth/validate-maps-key';
+
+    $response = proleadsai_api_request($endpoint, array(
+        'method' => 'POST',
+        'headers' => array('Content-Type' => 'application/json'),
+        'body' => wp_json_encode(array(
+            'apiKey' => $api_key,
+        )),
+        'timeout' => 20,
     ));
-    
-    $places_response = wp_remote_get($places_url, array(
-        'timeout' => 15,
-        'sslverify' => true
-    ));
-    
-    if (!is_wp_error($places_response)) {
-        $places_body = wp_remote_retrieve_body($places_response);
-        $places_data = json_decode($places_body, true);
-        
-        if ($places_data['status'] === 'OK' || $places_data['status'] === 'ZERO_RESULTS') {
-            $results['placesApi']['valid'] = true;
-            $results['placesApi']['message'] = 'Places API is configured correctly';
-        } elseif ($places_data['status'] === 'REQUEST_DENIED') {
-            $results['placesApi']['message'] = $places_data['error_message'] ?? 'Places API access denied. Enable Places API in Google Cloud Console.';
-        } elseif ($places_data['status'] === 'INVALID_REQUEST') {
-            $results['placesApi']['message'] = 'Invalid API key format';
-        } else {
-            $results['placesApi']['message'] = 'Places API error: ' . $places_data['status'];
-        }
-    } else {
-        $results['placesApi']['message'] = 'Failed to test Places API: ' . $places_response->get_error_message();
+
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => $response->get_error_message()));
+        return;
     }
-    
-    // Test Solar API (using Google HQ coordinates)
-    $solar_url = 'https://solar.googleapis.com/v1/buildingInsights:findClosest?' . http_build_query(array(
-        'location.latitude' => 37.4220,
-        'location.longitude' => -122.0841,
-        'requiredQuality' => 'LOW',
-        'key' => $api_key
-    ));
-    
-    $solar_response = wp_remote_get($solar_url, array(
-        'timeout' => 15,
-        'sslverify' => true
-    ));
-    
-    if (!is_wp_error($solar_response)) {
-        $solar_status = wp_remote_retrieve_response_code($solar_response);
-        $solar_body = wp_remote_retrieve_body($solar_response);
-        $solar_data = json_decode($solar_body, true);
-        
-        if ($solar_status === 200 && isset($solar_data['solarPotential'])) {
-            $results['solarApi']['valid'] = true;
-            $results['solarApi']['message'] = 'Solar API is configured correctly';
-        } elseif (isset($solar_data['error'])) {
-            $error_msg = $solar_data['error']['message'] ?? '';
-            if (strpos($error_msg, 'API key not valid') !== false || strpos($error_msg, 'API_KEY_INVALID') !== false) {
-                $results['solarApi']['message'] = 'Invalid API key for Solar API';
-            } elseif (strpos($error_msg, 'has not been used') !== false || strpos($error_msg, 'disabled') !== false) {
-                $results['solarApi']['message'] = 'Solar API is not enabled. Enable it in Google Cloud Console.';
-            } elseif (strpos($error_msg, 'PERMISSION_DENIED') !== false) {
-                $results['solarApi']['message'] = 'Solar API access denied. Check API key restrictions.';
-            } else {
-                $results['solarApi']['message'] = $error_msg ?: 'Solar API error';
-            }
-        } else {
-            $results['solarApi']['message'] = 'Solar API returned unexpected response';
-        }
-    } else {
-        $results['solarApi']['message'] = 'Failed to test Solar API: ' . $solar_response->get_error_message();
+
+    $status_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $decoded = json_decode($body, true);
+
+    if ($status_code >= 400) {
+        wp_send_json_error(array('message' => $decoded['message'] ?? 'Failed to validate Solar API'));
+        return;
     }
-    
+
     wp_send_json_success(array(
-        'success' => $results['placesApi']['valid'] && $results['solarApi']['valid'],
-        'results' => $results
+        'success' => $decoded['success'] ?? false,
+        'solarApi' => $decoded['solarApi'] ?? array('valid' => false, 'message' => 'Unknown error'),
     ));
 }
-add_action('wp_ajax_proleadsai_validate_api_key', 'proleadsai_validate_api_key');
+add_action('wp_ajax_proleadsai_validate_solar_api', 'proleadsai_validate_solar_api');
 
 /**
  * Reset all plugin data (for testing)
@@ -623,6 +646,7 @@ function proleadsai_proxy_get_settings() {
         if (!empty($data['name'])) $updates['business'] = $data['name'];
         if (!empty($data['email'])) $updates['email'] = $data['email'];
         if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = $data['googleMapsApiKey'];
+        if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = $data['googleSolarApiKey'];
         if (isset($data['pricePerSq'])) $updates['price_per_sq'] = strval($data['pricePerSq']);
         if (!empty($data['timezone'])) $updates['timezone'] = $data['timezone'];
         if (!empty($data['id'])) $updates['team_id'] = $data['id'];
@@ -716,6 +740,7 @@ function proleadsai_proxy_save_settings() {
     $body = array();
     if (isset($data['name'])) $body['name'] = sanitize_text_field($data['name']);
     if (isset($data['googleMapsApiKey'])) $body['googleMapsApiKey'] = sanitize_text_field($data['googleMapsApiKey']);
+    if (isset($data['googleSolarApiKey'])) $body['googleSolarApiKey'] = sanitize_text_field($data['googleSolarApiKey']);
     if (isset($data['pricePerSq'])) $body['pricePerSq'] = intval($data['pricePerSq']);
     if (isset($data['timezone'])) $body['timezone'] = sanitize_text_field($data['timezone']);
     
@@ -747,6 +772,7 @@ function proleadsai_proxy_save_settings() {
     $updates = array();
     if (isset($data['name'])) $updates['business'] = $data['name'];
     if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = $data['googleMapsApiKey'];
+    if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = $data['googleSolarApiKey'];
     if (isset($data['pricePerSq'])) $updates['price_per_sq'] = strval($data['pricePerSq']);
     if (isset($data['timezone'])) $updates['timezone'] = $data['timezone'];
     

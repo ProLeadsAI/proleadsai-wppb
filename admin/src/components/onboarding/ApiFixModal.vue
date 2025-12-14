@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui'
 
 const props = defineProps({
-  type: { type: String, default: null }, // 'places' | 'solar' | null
+  type: { type: String, default: null }, // 'places' | null
   siteDomain: { type: String, default: '' },
   apiDomain: { type: String, default: '' }
 })
@@ -19,9 +19,7 @@ const emit = defineEmits(['close', 'revalidate'])
     <div class="bg-card text-card-foreground rounded-lg shadow-xl max-w-md w-full mx-4 border border-border">
       <div class="p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">
-            {{ type === 'places' ? 'Enable Places API' : 'Enable Solar API' }}
-          </h3>
+          <h3 class="text-lg font-semibold">Enable Google Maps API</h3>
           <Button variant="ghost" size="sm" @click="emit('close')">✕</Button>
         </div>
         
@@ -40,7 +38,7 @@ const emit = defineEmits(['close', 'revalidate'])
           <ol class="list-decimal list-inside space-y-2 text-muted-foreground">
             <li>Click the button below to open Google Cloud Console</li>
             <li>Make sure you're in the correct project</li>
-            <li>Click <strong class="text-foreground">Enable</strong> if not already enabled</li>
+            <li>Enable <strong class="text-foreground">Maps JavaScript API</strong> and <strong class="text-foreground">Places API (New)</strong></li>
             <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-primary hover:underline">API Credentials</a> and edit your API key</li>
             <li>Under <strong class="text-foreground">Website restrictions</strong>, add the domains above</li>
             <li>Save and wait 1-2 minutes for changes to propagate</li>
@@ -48,14 +46,12 @@ const emit = defineEmits(['close', 'revalidate'])
 
           <div class="flex gap-2 pt-2">
             <a 
-              :href="type === 'places' 
-                ? 'https://console.cloud.google.com/apis/library/places-backend.googleapis.com' 
-                : 'https://console.cloud.google.com/apis/library/solar.googleapis.com'"
+              href="https://console.cloud.google.com/apis/library/places.googleapis.com"
               target="_blank"
               class="flex-1"
             >
               <Button class="w-full">
-                Open {{ type === 'places' ? 'Places' : 'Solar' }} API
+                Open Places API (New)
               </Button>
             </a>
           </div>

@@ -27,7 +27,7 @@
         <!-- Main Card -->
         <Card class="p-8 shadow-sm rounded-xl">
           <!-- Step 0: Welcome -->
-          <StepWelcome v-if="currentStep === 0" />
+          <StepWelcome v-if="currentStep === 0" :site-domain="siteDomain" :page="settings.page" :source-version="settings.version" />
 
           <!-- Step 1: Email Verification -->
           <StepEmail 
@@ -58,18 +58,24 @@
             v-model="state.google_maps_api_key"
             :site-domain="siteDomain"
             :api-domain="apiDomain"
-            :api-validation="apiValidation"
-            :is-validating="isValidating"
-            @submit="nextStep"
+            @validation-complete="handleMapsValidationComplete"
             @show-fix-modal="showApiFixModal = $event"
           />
 
-          <!-- Step 4: Theme & Pricing -->
-          <StepTheme 
+          <!-- Step 4: Google Solar API Key -->
+          <StepGoogleSolar 
             v-if="currentStep === 4"
+            v-model="state.google_solar_api_key"
+            :settings="settings"
+            @validation-complete="handleSolarValidationComplete"
+          />
+
+          <!-- Step 5: Theme & Pricing -->
+          <StepTheme 
+            v-if="currentStep === 5"
             :state="state"
             @update:primary_color="state.primary_color = $event"
-            @update:secondary_color="state.secondary_color = $event"
+            @update:text_color="state.text_color = $event"
             @update:button_position="state.button_position = $event"
             @update:price_per_sq="state.price_per_sq = $event"
             @update:timezone="state.timezone = $event"
@@ -103,7 +109,7 @@
       :site-domain="siteDomain"
       :api-domain="apiDomain"
       @close="showApiFixModal = null"
-      @revalidate="showApiFixModal = null; validateApiKey(true)"
+      @revalidate="() => { showApiFixModal = null; validatePlacesApiKey(true) }"
     />
   </div>
 </template>
@@ -112,7 +118,7 @@
 import { onMounted } from 'vue'
 import { Check, ChevronLeft } from 'lucide-vue-next'
 import { Button, Card } from '@/components/ui'
-import { StepWelcome, StepEmail, StepBusiness, StepGoogleMaps, StepTheme, ApiFixModal } from '@/components/onboarding'
+import { StepWelcome, StepEmail, StepBusiness, StepGoogleMaps, StepGoogleSolar, StepTheme, ApiFixModal } from '@/components/onboarding'
 import { useOnboarding } from '@/composables/useOnboarding'
 
 const props = defineProps({
@@ -131,8 +137,6 @@ const {
   isChangingEmail,
   cooldown,
   showApiFixModal,
-  isValidating,
-  apiValidation,
   apiDomain,
   siteDomain,
   canProceed,
@@ -140,7 +144,8 @@ const {
   handleChangeEmail,
   sendVerificationCode,
   verifyCode,
-  validateApiKey,
+  handleMapsValidationComplete,
+  handleSolarValidationComplete,
   nextStep,
   prevStep
 } = useOnboarding(props.settings, emit)

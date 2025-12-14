@@ -23,11 +23,16 @@
     <SettingsBusinessInfo 
       :state="state"
       :site-domain="siteDomain"
-      :api-validation="apiValidation"
-      :is-validating="isValidating"
+      :api-domain="apiDomain"
+      :places-validation="placesValidation"
+      :solar-validation="solarValidation"
+      :is-validating-places="isValidatingPlaces"
+      :is-validating-solar="isValidatingSolar"
       :is-saving="isSaving"
       @save="saveBusinessSettings"
-      @show-api-help="showApiKeyHelp = true"
+      @show-places-api-help="showApiKeyHelp = 'places'"
+      @show-solar-api-help="showApiKeyHelp = 'solar'"
+      @validate-solar="validateSolarKey"
     />
 
     <!-- Floating Button -->
@@ -35,6 +40,7 @@
       :state="state"
       :is-saving="isSaving"
       @save="saveAppearance"
+      @open-media="openMediaLibrary"
     />
 
     <!-- Shortcode -->
@@ -47,9 +53,11 @@
 
     <!-- API Key Help Modal -->
     <ApiKeyHelpModal 
-      :show="showApiKeyHelp"
+      :show="!!showApiKeyHelp"
+      :type="showApiKeyHelp"
       :site-domain="siteDomain"
-      @close="showApiKeyHelp = false"
+      :api-domain="apiDomain"
+      @close="showApiKeyHelp = null"
     />
     
     <!-- Reauth Modal -->
@@ -83,8 +91,12 @@ const {
   error,
   success,
   showApiKeyHelp,
-  isValidating,
-  apiValidation,
+  isValidatingPlaces,
+  placesValidation,
+  isValidatingSolar,
+  solarValidation,
+  validateSolarKey,
+  apiDomain,
   siteDomain,
   loadSettings,
   saveBusinessSettings,

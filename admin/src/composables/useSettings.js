@@ -1,13 +1,14 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { wpAjax, loadState as loadFn, saveState as saveFn } from '@/lib/wpAjax'
 import { useApiValidation } from './useApiValidation'
+import { BASE_URL } from '@/lib/api'
 
 export function useSettings(settings, emit) {
   const showReauthModal = ref(false)
   const isSaving = ref(false)
   const error = ref('')
   const success = ref('')
-  const showApiKeyHelp = ref(false)
+  const showApiKeyHelp = ref(null)
 
   const state = reactive({
     email: '',
@@ -16,17 +17,18 @@ export function useSettings(settings, emit) {
     auth_token: '',
     business: '',
     google_maps_api_key: '',
+    google_solar_api_key: '',
     price_per_sq: '750',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     // Floating button
-    primary_color: '#facc15',
-    text_color: '#1c1917',
+    primary_color: '#ffd400',
+    text_color: '#1d1616',
     button_text: 'Get Roof Estimate',
     button_emoji: '🏠',
     button_position: 'bottom-right',
     show_widget: true,
     // Shortcode
-    shortcode_heading: '',
+    shortcode_heading: 'Free Roof Estimate Instantly',
     shortcode_bg_style: 'none',
     shortcode_bg_color: '#f5f5f4',
     shortcode_image: 'default',
@@ -37,10 +39,88 @@ export function useSettings(settings, emit) {
     heading_font: '',
     heading_color: '#1c1917',
     text_font: '',
-    text_color_shortcode: '#44403c'
+    text_color_shortcode: '#44403c',
+    heading_size: '',
+    text_size: '',
+    // Sidebar (Floating Widget) Visuals
+    sidebar_heading: 'Free Roof Estimate Instantly',
+    sidebar_bg_style: 'none',
+    sidebar_bg_color: '#f5f5f4',
+    sidebar_image: 'default',
+    sidebar_custom_image: '',
+    sidebar_heading_font: '',
+    sidebar_heading_color: '#1c1917',
+    sidebar_text_font: '',
+    sidebar_text_color: '#44403c',
+    sidebar_heading_size: '',
+    sidebar_text_size: ''
   })
 
-  const { isValidating, apiValidation, initValidation, validateApiKey } = useApiValidation(settings)
+  const { isValidating: isValidatingPlaces, apiValidation: placesValidation, initValidation: initPlacesValidation, validateApiKey: validatePlacesKey } = useApiValidation(settings)
+
+  // Solar API validation state
+  const isValidatingSolar = ref(false)
+  const solarValidation = reactive({
+    checked: false,
+    valid: false,
+    message: '',
+    lastValidatedKey: ''
+  })
+
+  function resetSolarValidation() {
+    solarValidation.checked = false
+    solarValidation.valid = false
+    solarValidation.message = ''
+  }
+
+  watch(() => state.google_solar_api_key, (val) => {
+    const key = (val || '').trim()
+    if (!key || key !== solarValidation.lastValidatedKey) {
+      resetSolarValidation()
+    }
+  })
+
+  async function validateSolarKey() {
+    const key = state.google_solar_api_key?.trim()
+    if (!key) {
+      solarValidation.checked = true
+      solarValidation.valid = false
+      solarValidation.message = 'API key is required'
+      return
+    }
+
+    isValidatingSolar.value = true
+    solarValidation.checked = false
+
+    try {
+      const response = await wpAjax('proleadsai_validate_solar_api', { apiKey: key }, settings)
+      
+      if (response.success && response.data?.solarApi) {
+        solarValidation.checked = true
+        solarValidation.valid = response.data.solarApi.valid
+        solarValidation.message = response.data.solarApi.message
+        solarValidation.lastValidatedKey = key
+      } else {
+        solarValidation.checked = true
+        solarValidation.valid = false
+        solarValidation.message = response.data?.message || 'Failed to validate Solar API'
+      }
+    } catch (e) {
+      solarValidation.checked = true
+      solarValidation.valid = false
+      solarValidation.message = e.message || 'Failed to validate Solar API'
+    } finally {
+      isValidatingSolar.value = false
+    }
+  }
+
+  const apiDomain = computed(() => {
+    try {
+      return new URL(BASE_URL).host
+    } catch {
+      return 'next.proleadsai.com'
+    }
+  })
 
   const siteDomain = computed(() => {
     try {
@@ -50,13 +130,35 @@ export function useSettings(settings, emit) {
     }
   })
 
+  function resetPlacesValidation() {
+    placesValidation.checked = false
+    placesValidation.domains.site.places = { valid: false, message: '' }
+    placesValidation.domains.app.places = { valid: false, message: '' }
+  }
+
+  watch(() => state.google_maps_api_key, (val) => {
+    const key = (val || '').trim()
+    if (!key || key !== placesValidation.lastValidatedKey) {
+      resetPlacesValidation()
+    }
+  })
+
   async function loadSettings() {
     try {
       const data = await loadFn(settings)
       if (data && typeof data === 'object') {
         Object.assign(state, data)
-        initValidation(data.google_maps_api_key)
+
+        const loadedPlacesKey = (data.google_maps_api_key || '').trim()
+        if (loadedPlacesKey) {
+          placesValidation.originalKey = loadedPlacesKey
+          placesValidation.lastValidatedKey = loadedPlacesKey
+          resetPlacesValidation()
+        }
       }
+
+      if (!state.shortcode_heading) state.shortcode_heading = 'Free Roof Estimate Instantly'
+      if (!state.sidebar_heading) state.sidebar_heading = 'Free Roof Estimate Instantly'
       
       if (!state.auth_token) {
         showReauthModal.value = true
@@ -78,7 +180,13 @@ export function useSettings(settings, emit) {
         if (data.name) state.business = data.name
         if (data.googleMapsApiKey) {
           state.google_maps_api_key = data.googleMapsApiKey
-          initValidation(data.googleMapsApiKey)
+          const loadedPlacesKey = (data.googleMapsApiKey || '').trim()
+          placesValidation.originalKey = loadedPlacesKey
+          placesValidation.lastValidatedKey = loadedPlacesKey
+          resetPlacesValidation()
+        }
+        if (data.googleSolarApiKey) {
+          state.google_solar_api_key = data.googleSolarApiKey
         }
         if (data.pricePerSq !== undefined) state.price_per_sq = data.pricePerSq.toString()
         if (data.timezone) state.timezone = data.timezone
@@ -95,14 +203,16 @@ export function useSettings(settings, emit) {
     success.value = ''
     
     try {
-      const currentKey = state.google_maps_api_key.trim()
-      if (currentKey && currentKey !== apiValidation.lastValidatedKey) {
-        await validateApiKey(currentKey)
+      const placesKey = state.google_maps_api_key.trim()
+
+      if (placesKey && placesKey !== placesValidation.lastValidatedKey) {
+        await validatePlacesKey(placesKey, true)
       }
       
       const response = await wpAjax('proleadsai_proxy_save_settings', {
         name: state.business,
         googleMapsApiKey: state.google_maps_api_key,
+        googleSolarApiKey: state.google_solar_api_key,
         pricePerSq: parseInt(state.price_per_sq, 10) || 750,
         timezone: state.timezone
       }, settings)
@@ -132,10 +242,21 @@ export function useSettings(settings, emit) {
         primary_color: state.primary_color,
         text_color: state.text_color,
         button_text: state.button_text,
-        button_emoji: state.button_emoji
+        button_emoji: state.button_emoji,
+        sidebar_heading: state.sidebar_heading,
+        sidebar_bg_style: state.sidebar_bg_style,
+        sidebar_bg_color: state.sidebar_bg_color,
+        sidebar_image: state.sidebar_image,
+        sidebar_custom_image: state.sidebar_custom_image,
+        sidebar_heading_font: state.sidebar_heading_font,
+        sidebar_heading_color: state.sidebar_heading_color,
+        sidebar_text_font: state.sidebar_text_font,
+        sidebar_text_color: state.sidebar_text_color,
+        sidebar_heading_size: state.sidebar_heading_size,
+        sidebar_text_size: state.sidebar_text_size
       }, settings)
       
-      success.value = 'Floating button settings saved!'
+      success.value = 'Floating widget settings saved!'
       setTimeout(() => { success.value = '' }, 3000)
     } catch (e) {
       error.value = e.message || 'Failed to save settings'
@@ -161,7 +282,20 @@ export function useSettings(settings, emit) {
         heading_font: state.heading_font,
         heading_color: state.heading_color,
         text_font: state.text_font,
-        text_color_shortcode: state.text_color_shortcode
+        text_color_shortcode: state.text_color_shortcode,
+        heading_size: state.heading_size,
+        text_size: state.text_size,
+        sidebar_heading: state.sidebar_heading,
+        sidebar_bg_style: state.sidebar_bg_style,
+        sidebar_bg_color: state.sidebar_bg_color,
+        sidebar_image: state.sidebar_image,
+        sidebar_custom_image: state.sidebar_custom_image,
+        sidebar_heading_font: state.sidebar_heading_font,
+        sidebar_heading_color: state.sidebar_heading_color,
+        sidebar_text_font: state.sidebar_text_font,
+        sidebar_text_color: state.sidebar_text_color,
+        sidebar_heading_size: state.sidebar_heading_size,
+        sidebar_text_size: state.sidebar_text_size
       }, settings)
       
       success.value = 'Shortcode settings saved!'
@@ -173,7 +307,7 @@ export function useSettings(settings, emit) {
     }
   }
 
-  function openMediaLibrary() {
+  function openMediaLibrary(targetField = 'shortcode_custom_image') {
     if (window.wp && window.wp.media) {
       const mediaFrame = window.wp.media({
         title: 'Select Hero Image',
@@ -183,13 +317,15 @@ export function useSettings(settings, emit) {
       
       mediaFrame.on('select', () => {
         const attachment = mediaFrame.state().get('selection').first().toJSON()
-        state.shortcode_custom_image = attachment.url
+        if (Object.prototype.hasOwnProperty.call(state, targetField)) {
+          state[targetField] = attachment.url
+        }
       })
       
       mediaFrame.open()
     } else {
       const url = prompt('Enter image URL:')
-      if (url) state.shortcode_custom_image = url
+      if (url && Object.prototype.hasOwnProperty.call(state, targetField)) state[targetField] = url
     }
   }
 
@@ -213,17 +349,19 @@ export function useSettings(settings, emit) {
   }
 
   return {
-    // State
     state,
     showReauthModal,
     isSaving,
     error,
     success,
     showApiKeyHelp,
-    isValidating,
-    apiValidation,
+    isValidatingPlaces,
+    placesValidation,
+    isValidatingSolar,
+    solarValidation,
+    validateSolarKey,
+    apiDomain,
     siteDomain,
-    // Actions
     loadSettings,
     saveBusinessSettings,
     saveAppearance,

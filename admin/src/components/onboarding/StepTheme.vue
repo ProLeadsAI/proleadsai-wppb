@@ -7,7 +7,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:primary_color',
-  'update:secondary_color', 
+  'update:text_color',
   'update:button_position',
   'update:price_per_sq',
   'update:timezone'
@@ -42,17 +42,17 @@ const timezones = [
       </div>
     </div>
     <div class="space-y-2">
-      <Label>Secondary Color</Label>
+      <Label>Text Color</Label>
       <div class="flex gap-2">
         <input 
-          :value="state.secondary_color" 
-          @input="emit('update:secondary_color', $event.target.value)"
+          :value="state.text_color" 
+          @input="emit('update:text_color', $event.target.value)"
           type="color" 
           class="w-12 h-10 p-1 border rounded-md cursor-pointer" 
         />
         <Input 
-          :model-value="state.secondary_color"
-          @update:model-value="emit('update:secondary_color', $event)"
+          :model-value="state.text_color"
+          @update:model-value="emit('update:text_color', $event)"
           class="flex-1" 
         />
       </div>

@@ -1,10 +1,10 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { BASE_URL } from '@/lib/api'
 import { wpAjax, saveState as saveFn, loadState as loadFn } from '@/lib/wpAjax'
 
 export function useOnboarding(settings, emit) {
   // State
-  const steps = ['Welcome', 'Email Verification', 'Business Info', 'Google Maps API', 'Theme & Pricing']
+  const steps = ['Welcome', 'Email Verification', 'Business Info', 'Google Maps API', 'Google Solar API', 'Theme & Pricing']
   const currentStep = ref(0)
   const isLoading = ref(false)
   const error = ref('')
@@ -12,14 +12,22 @@ export function useOnboarding(settings, emit) {
   const isChangingEmail = ref(false)
   const cooldown = ref(0)
   const showApiFixModal = ref(null)
-  const isValidating = ref(false)
 
-  const apiValidation = reactive({
+  // Maps API validation state (Step 3)
+  const mapsValidation = reactive({
     checked: false,
+    valid: false,
     lastValidatedKey: '',
-    originalKey: '',
-    places: { valid: false, message: '' },
-    solar: { valid: false, message: '' }
+    mapsJs: { valid: false, message: '' },
+    placesApi: { valid: false, message: '' }
+  })
+
+  // Solar API validation state (Step 4)
+  const solarValidation = reactive({
+    checked: false,
+    valid: false,
+    lastValidatedKey: '',
+    message: ''
   })
 
   const state = reactive({
@@ -31,8 +39,9 @@ export function useOnboarding(settings, emit) {
     code: '',
     business: '',
     google_maps_api_key: '',
-    primary_color: '#1d4ed8',
-    secondary_color: '#22c55e',
+    google_solar_api_key: '',
+    primary_color: '#ffd400',
+    text_color: '#1d1616',
     button_position: 'bottom-center',
     price_per_sq: '750',
     timezone: 'America/New_York'
@@ -59,9 +68,58 @@ export function useOnboarding(settings, emit) {
     if (currentStep.value === 0) return true
     if (currentStep.value === 1) return state.email_verified
     if (currentStep.value === 2) return state.business.trim().length > 0
-    if (currentStep.value === 3) return state.google_maps_api_key.trim().length > 0
+    if (currentStep.value === 3) {
+      const key = state.google_maps_api_key.trim()
+      if (!key) return false
+      if (!mapsValidation.checked) return false
+      if (mapsValidation.lastValidatedKey !== key) return false
+      return mapsValidation.valid
+    }
+    if (currentStep.value === 4) {
+      const key = state.google_solar_api_key.trim()
+      if (!key) return false
+      if (!solarValidation.checked) return false
+      if (solarValidation.lastValidatedKey !== key) return false
+      return solarValidation.valid
+    }
     return true
   })
+
+  watch(() => state.google_maps_api_key, (val) => {
+    const key = (val || '').trim()
+    if (!key || key !== mapsValidation.lastValidatedKey) {
+      mapsValidation.checked = false
+      mapsValidation.valid = false
+      mapsValidation.mapsJs = { valid: false, message: '' }
+      mapsValidation.placesApi = { valid: false, message: '' }
+    }
+  })
+
+  watch(() => state.google_solar_api_key, (val) => {
+    const key = (val || '').trim()
+    if (!key || key !== solarValidation.lastValidatedKey) {
+      solarValidation.checked = false
+      solarValidation.valid = false
+      solarValidation.message = ''
+    }
+  })
+
+  // Handle Maps validation result from StepGoogleMaps component
+  function handleMapsValidationComplete(result) {
+    mapsValidation.checked = true
+    mapsValidation.valid = result.valid
+    mapsValidation.lastValidatedKey = state.google_maps_api_key.trim()
+    mapsValidation.mapsJs = result.mapsJs || { valid: false, message: '' }
+    mapsValidation.placesApi = result.placesApi || { valid: false, message: '' }
+  }
+
+  // Handle Solar validation result from StepGoogleSolar component
+  function handleSolarValidationComplete(result) {
+    solarValidation.checked = true
+    solarValidation.valid = result.valid
+    solarValidation.lastValidatedKey = state.google_solar_api_key.trim()
+    solarValidation.message = result.message || ''
+  }
 
   // Helpers
   const ajax = (action, data = {}) => wpAjax(action, data, settings)
@@ -75,11 +133,18 @@ export function useOnboarding(settings, emit) {
         Object.assign(state, data)
         
         if (data.google_maps_api_key) {
-          apiValidation.originalKey = data.google_maps_api_key
-          apiValidation.lastValidatedKey = data.google_maps_api_key
-          apiValidation.checked = true
-          apiValidation.places = { valid: true, message: '' }
-          apiValidation.solar = { valid: true, message: '' }
+          mapsValidation.lastValidatedKey = data.google_maps_api_key
+          mapsValidation.checked = true
+          mapsValidation.valid = true
+          mapsValidation.mapsJs = { valid: true, message: '' }
+          mapsValidation.placesApi = { valid: true, message: '' }
+        }
+        
+        if (data.google_solar_api_key) {
+          solarValidation.lastValidatedKey = data.google_solar_api_key
+          solarValidation.checked = true
+          solarValidation.valid = true
+          solarValidation.message = ''
         }
         
         if (data.completed) {
@@ -88,7 +153,13 @@ export function useOnboarding(settings, emit) {
         }
         
         if (data.auth_token && data.team_id) {
-          currentStep.value = data.google_maps_api_key ? 4 : data.business ? 3 : 2
+          currentStep.value = data.google_solar_api_key
+            ? 5
+            : data.google_maps_api_key
+              ? 4
+              : data.business
+                ? 3
+                : 2
         } else if (data.email_verified && data.user_id) {
           currentStep.value = 2
         }
@@ -158,6 +229,7 @@ export function useOnboarding(settings, emit) {
         state.business = org.name || ''
         state.team_id = org.id || ''
         if (org.googleMapsApiKey) state.google_maps_api_key = org.googleMapsApiKey
+        if (org.googleSolarApiKey) state.google_solar_api_key = org.googleSolarApiKey
         if (org.pricePerSq) state.price_per_sq = org.pricePerSq.toString()
         if (org.timezone) state.timezone = org.timezone
         
@@ -165,6 +237,7 @@ export function useOnboarding(settings, emit) {
           business: state.business,
           team_id: state.team_id,
           google_maps_api_key: state.google_maps_api_key,
+          google_solar_api_key: state.google_solar_api_key,
           price_per_sq: state.price_per_sq,
           timezone: state.timezone
         })
@@ -174,51 +247,14 @@ export function useOnboarding(settings, emit) {
     }
   }
 
-  async function validateApiKey(force = false) {
-    const key = state.google_maps_api_key.trim()
-    
-    if (!key) {
-      apiValidation.checked = true
-      apiValidation.lastValidatedKey = ''
-      apiValidation.places = { valid: false, message: 'API key is required' }
-      apiValidation.solar = { valid: false, message: 'API key is required' }
-      return
-    }
-    
-    if (!force && apiValidation.checked && apiValidation.lastValidatedKey === key) return
-    
-    isValidating.value = true
-    error.value = ''
-    
-    try {
-      const data = await ajax('proleadsai_validate_api_key', { apiKey: key })
-      apiValidation.checked = true
-      apiValidation.lastValidatedKey = key
-      
-      if (data.success && data.data?.results) {
-        apiValidation.places = data.data.results.placesApi
-        apiValidation.solar = data.data.results.solarApi
-      } else {
-        apiValidation.places = { valid: false, message: data.data?.message || 'Validation failed' }
-        apiValidation.solar = { valid: false, message: data.data?.message || 'Validation failed' }
-      }
-    } catch (e) {
-      apiValidation.checked = true
-      apiValidation.lastValidatedKey = key
-      apiValidation.places = { valid: false, message: 'Failed to validate' }
-      apiValidation.solar = { valid: false, message: 'Failed to validate' }
-    } finally {
-      isValidating.value = false
-    }
-  }
-
   async function nextStep() {
     if (currentStep.value === steps.length - 1) {
       await saveState({
         business: state.business,
         google_maps_api_key: state.google_maps_api_key,
+        google_solar_api_key: state.google_solar_api_key,
         primary_color: state.primary_color,
-        secondary_color: state.secondary_color,
+        text_color: state.text_color,
         button_position: state.button_position,
         price_per_sq: state.price_per_sq,
         timezone: state.timezone
@@ -261,14 +297,9 @@ export function useOnboarding(settings, emit) {
         console.error('Failed to create business:', e)
       }
     } else if (currentStep.value === 3) {
-      const keyChanged = state.google_maps_api_key.trim() !== apiValidation.originalKey
-      
-      if (keyChanged || !apiValidation.checked) {
-        await validateApiKey()
-        if (!apiValidation.places.valid && !apiValidation.solar.valid) {
-          error.value = 'Please fix the API key issues before continuing'
-          return
-        }
+      if (!canProceed.value) {
+        error.value = 'Please validate your Google Maps API key before continuing'
+        return
       }
       
       await saveState({ google_maps_api_key: state.google_maps_api_key })
@@ -280,6 +311,23 @@ export function useOnboarding(settings, emit) {
           })
         } catch (e) {
           console.error('Failed to save Google Maps API key:', e)
+        }
+      }
+    } else if (currentStep.value === 4) {
+      if (!canProceed.value) {
+        error.value = 'Please validate your Google Solar API key before continuing'
+        return
+      }
+      
+      await saveState({ google_solar_api_key: state.google_solar_api_key })
+      if (state.user_id && state.google_solar_api_key) {
+        try {
+          await ajax('proleadsai_update_settings', {
+            userId: state.user_id,
+            googleSolarApiKey: state.google_solar_api_key
+          })
+        } catch (e) {
+          console.error('Failed to save Google Solar API key:', e)
         }
       }
     }
@@ -302,8 +350,6 @@ export function useOnboarding(settings, emit) {
     isChangingEmail,
     cooldown,
     showApiFixModal,
-    isValidating,
-    apiValidation,
     // Computed
     apiDomain,
     siteDomain,
@@ -313,7 +359,8 @@ export function useOnboarding(settings, emit) {
     handleChangeEmail,
     sendVerificationCode,
     verifyCode,
-    validateApiKey,
+    handleMapsValidationComplete,
+    handleSolarValidationComplete,
     nextStep,
     prevStep
   }

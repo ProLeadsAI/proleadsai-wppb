@@ -1,5 +1,30 @@
 <script setup>
+import { computed } from 'vue'
 import { Zap, Home, BarChart3, Sparkles } from 'lucide-vue-next'
+
+const props = defineProps({
+  siteDomain: { type: String, default: '' },
+  page: { type: String, default: 'onboarding' },
+  sourceVersion: { type: String, default: '' }
+})
+
+const trackedUrl = computed(() => {
+  const base = 'https://proleadsai.com/'
+  const url = new URL(base)
+
+  url.searchParams.set('utm_source', 'proleadsai_wp_plugin')
+  url.searchParams.set('utm_medium', 'wp_admin')
+  url.searchParams.set('utm_campaign', 'onboarding')
+  url.searchParams.set('utm_content', 'step_0_welcome_link')
+
+  const domain = (props.siteDomain || (typeof window !== 'undefined' ? window.location.hostname : '') || '').trim()
+  if (domain) url.searchParams.set('utm_term', domain)
+
+  const version = (props.sourceVersion || '').trim()
+  if (version) url.searchParams.set('source_version', version)
+
+  return url.toString()
+})
 </script>
 
 <template>
@@ -11,7 +36,7 @@ import { Zap, Home, BarChart3, Sparkles } from 'lucide-vue-next'
       </div>
       <div class="text-left">
         <h1 class="text-xl font-bold text-gray-900">ProLeads AI</h1>
-        <a href="https://proleadsai.com" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700">
+        <a :href="trackedUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-emerald-600 hover:text-emerald-700">
           proleadsai.com →
         </a>
       </div>

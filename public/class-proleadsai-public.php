@@ -111,7 +111,9 @@ class Proleadsai_Public {
 			return;
 		}
 		
-		echo $this->get_widget_html( 'floating' );
+		
+		$visual_options = $this->get_visual_attributes( $settings, array(), 'floating' );
+		echo $this->get_widget_html( 'floating', $visual_options );
 	}
 
 	/**
@@ -130,70 +132,12 @@ class Proleadsai_Public {
 			return '<!-- ProLeadsAI: Setup not completed -->';
 		}
 		
-		// Parse shortcode attributes with defaults from settings
-		$atts = shortcode_atts( array(
-			'heading' => $settings['shortcode_heading'] ?? '',
-			'bg' => $settings['shortcode_bg_style'] ?? 'none',
-			'image' => null, // null means use settings default
-			'mt' => $settings['shortcode_margin_top'] ?? '',
-			'mb' => $settings['shortcode_margin_bottom'] ?? '',
-			'heading-font' => $settings['heading_font'] ?? '',
-			'heading-color' => $settings['heading_color'] ?? '',
-			'text-font' => $settings['text_font'] ?? '',
-			'text-color' => $settings['text_color_shortcode'] ?? '',
-		), $atts, 'proleadsai_widget' );
+		$visual_options = $this->get_visual_attributes( $settings, (array) $atts, 'inline' );
 		
 		// Enqueue scripts/styles for shortcode usage
 		$this->enqueue_shortcode_assets();
 		
-		// Determine background style and color
-		$bg_style = 'none';
-		$bg_color = '#f5f5f4';
-		
-		if ( in_array( $atts['bg'], array( 'none', 'light', 'dark' ), true ) ) {
-			$bg_style = $atts['bg'];
-		} elseif ( preg_match( '/^#[0-9A-Fa-f]{3,6}$/', $atts['bg'] ) ) {
-			// It's a hex color
-			$bg_style = 'custom';
-			$bg_color = $atts['bg'];
-		} elseif ( $atts['bg'] === 'custom' ) {
-			$bg_style = 'custom';
-			$bg_color = $settings['shortcode_bg_color'] ?? '#f5f5f4';
-		}
-		
-		// Determine hero image
-		$hero_image = '';
-		if ( $atts['image'] === null ) {
-			// Use settings default
-			$image_setting = $settings['shortcode_image'] ?? 'default';
-			$custom_image = $settings['shortcode_custom_image'] ?? '';
-			
-			if ( $image_setting === 'none' ) {
-				$hero_image = 'none';
-			} elseif ( $image_setting === 'custom' && ! empty( $custom_image ) ) {
-				$hero_image = $custom_image;
-			}
-		} elseif ( $atts['image'] === 'none' ) {
-			$hero_image = 'none';
-		} elseif ( $atts['image'] === 'default' ) {
-			$hero_image = ''; // Uses widget default
-		} else {
-			// Custom URL provided in shortcode
-			$hero_image = $atts['image'];
-		}
-		
-		return $this->get_widget_html( 'inline', array(
-			'heading' => $atts['heading'],
-			'bg_style' => $bg_style,
-			'bg_color' => $bg_color,
-			'hero_image' => $hero_image,
-			'margin_top' => $atts['mt'],
-			'margin_bottom' => $atts['mb'],
-			'heading_font' => $atts['heading-font'],
-			'heading_color' => $atts['heading-color'],
-			'text_font' => $atts['text-font'],
-			'text_color' => $atts['text-color'],
-		) );
+		return $this->get_widget_html( 'inline', $visual_options );
 	}
 
 	/**
@@ -215,6 +159,131 @@ class Proleadsai_Public {
 			array(), 
 			$this->version, 
 			true 
+		);
+	}
+
+	/**
+	 * Generic method to parse visual attributes from settings + overrides
+	 */
+	private function get_visual_attributes( $settings, $atts = array(), $display_mode = 'inline' ) {
+		$is_floating = ( $display_mode === 'floating' );
+		$default_heading = 'Free Roof Estimate Instantly';
+		$settings_heading = $is_floating ? ( $settings['sidebar_heading'] ?? '' ) : ( $settings['shortcode_heading'] ?? '' );
+		if ( $is_floating && empty( $settings_heading ) ) {
+			$settings_heading = $settings['shortcode_heading'] ?? '';
+		}
+		if ( empty( $settings_heading ) ) {
+			$settings_heading = $default_heading;
+		}
+
+		$settings_bg_style = $is_floating ? ( $settings['sidebar_bg_style'] ?? 'none' ) : ( $settings['shortcode_bg_style'] ?? 'none' );
+		$settings_bg_color = $is_floating ? ( $settings['sidebar_bg_color'] ?? '#f5f5f4' ) : ( $settings['shortcode_bg_color'] ?? '#f5f5f4' );
+		if ( $is_floating && ( ! isset( $settings['sidebar_bg_style'] ) || $settings_bg_style === '' ) ) {
+			$settings_bg_style = $settings['shortcode_bg_style'] ?? 'none';
+		}
+		if ( $is_floating && ( ! isset( $settings['sidebar_bg_color'] ) || $settings_bg_color === '' ) ) {
+			$settings_bg_color = $settings['shortcode_bg_color'] ?? '#f5f5f4';
+		}
+
+		$settings_image = $is_floating ? ( $settings['sidebar_image'] ?? 'default' ) : ( $settings['shortcode_image'] ?? 'default' );
+		$settings_custom_image = $is_floating ? ( $settings['sidebar_custom_image'] ?? '' ) : ( $settings['shortcode_custom_image'] ?? '' );
+		if ( $is_floating && ( ! isset( $settings['sidebar_image'] ) || $settings_image === '' ) ) {
+			$settings_image = $settings['shortcode_image'] ?? 'default';
+		}
+		if ( $is_floating && ( ! isset( $settings['sidebar_custom_image'] ) || $settings_custom_image === '' ) ) {
+			$settings_custom_image = $settings['shortcode_custom_image'] ?? '';
+		}
+
+		$settings_heading_font = $is_floating ? ( $settings['sidebar_heading_font'] ?? '' ) : ( $settings['heading_font'] ?? '' );
+		$settings_heading_color = $is_floating ? ( $settings['sidebar_heading_color'] ?? '' ) : ( $settings['heading_color'] ?? '' );
+		$settings_text_font = $is_floating ? ( $settings['sidebar_text_font'] ?? '' ) : ( $settings['text_font'] ?? '' );
+		$settings_text_color = $is_floating ? ( $settings['sidebar_text_color'] ?? '' ) : ( $settings['text_color_shortcode'] ?? '' );
+		$settings_heading_size = $is_floating ? ( $settings['sidebar_heading_size'] ?? '' ) : ( $settings['heading_size'] ?? '' );
+		$settings_text_size = $is_floating ? ( $settings['sidebar_text_size'] ?? '' ) : ( $settings['text_size'] ?? '' );
+
+		if ( $is_floating && empty( $settings_heading_font ) ) $settings_heading_font = $settings['heading_font'] ?? '';
+		if ( $is_floating && empty( $settings_heading_color ) ) $settings_heading_color = $settings['heading_color'] ?? '';
+		if ( $is_floating && empty( $settings_text_font ) ) $settings_text_font = $settings['text_font'] ?? '';
+		if ( $is_floating && empty( $settings_text_color ) ) $settings_text_color = $settings['text_color_shortcode'] ?? '';
+		if ( $is_floating && empty( $settings_heading_size ) ) $settings_heading_size = $settings['heading_size'] ?? '';
+		if ( $is_floating && empty( $settings_text_size ) ) $settings_text_size = $settings['text_size'] ?? '';
+
+		// Defaults
+		$defaults = array(
+			'heading' => $settings_heading,
+			'bg' => $settings_bg_style,
+			'image' => null, // null means use settings default
+			'mt' => $settings['shortcode_margin_top'] ?? '',
+			'mb' => $settings['shortcode_margin_bottom'] ?? '',
+			'heading-font' => $settings_heading_font,
+			'heading-color' => $settings_heading_color,
+			'text-font' => $settings_text_font,
+			// NOTE: use text-color-shortcode for widget body text color; keep text-color for backward compat
+			'text-color-shortcode' => $settings_text_color,
+			'text-color' => $settings_text_color,
+			'heading-size' => $settings_heading_size,
+			'text-size' => $settings_text_size,
+		);
+
+		// Merge with provided attributes
+		$atts = shortcode_atts( $defaults, $atts, 'proleadsai_widget' );
+		
+		// file_put_contents( __DIR__ . '/debug_atts.log', print_r( $atts, true ), FILE_APPEND );
+
+		// Determine background style and color
+		$bg_style = 'none';
+		$bg_color = '#f5f5f4';
+		
+		if ( in_array( $atts['bg'], array( 'none', 'light', 'dark' ), true ) ) {
+			$bg_style = $atts['bg'];
+		} elseif ( preg_match( '/^#[0-9A-Fa-f]{3,6}$/', $atts['bg'] ) ) {
+			// It's a hex color
+			$bg_style = 'custom';
+			$bg_color = $atts['bg'];
+		} elseif ( $atts['bg'] === 'custom' ) {
+			$bg_style = 'custom';
+			$bg_color = $settings_bg_color;
+		}
+		
+		// Determine hero image
+		$hero_image = '';
+		if ( $atts['image'] === null ) {
+			// Use settings default
+			$image_setting = $settings_image;
+			$custom_image = $settings_custom_image;
+			
+			if ( $image_setting === 'none' ) {
+				$hero_image = 'none';
+			} elseif ( $image_setting === 'custom' && ! empty( $custom_image ) ) {
+				$hero_image = $custom_image;
+			}
+		} elseif ( $atts['image'] === 'none' ) {
+			$hero_image = 'none';
+		} elseif ( $atts['image'] === 'default' ) {
+			$hero_image = ''; // Uses widget default
+		} else {
+			// Custom URL provided in shortcode
+			$hero_image = $atts['image'];
+		}
+
+		$text_color_attr = $atts['text-color-shortcode'];
+		if ( empty( $text_color_attr ) ) {
+			$text_color_attr = $atts['text-color'];
+		}
+
+		return array(
+			'heading' => $atts['heading'],
+			'bg_style' => $bg_style,
+			'bg_color' => $bg_color,
+			'hero_image' => $hero_image,
+			'margin_top' => $atts['mt'],
+			'margin_bottom' => $atts['mb'],
+			'heading_font' => $atts['heading-font'],
+			'heading_color' => $atts['heading-color'],
+			'text_font' => $atts['text-font'],
+			'text_color' => $text_color_attr,
+			'heading_size' => $atts['heading-size'],
+			'text_size' => $atts['text-size'],
 		);
 	}
 
@@ -263,7 +332,13 @@ class Proleadsai_Public {
 			$extra_attrs .= sprintf( ' text-font="%s"', esc_attr( $extra_options['text_font'] ) );
 		}
 		if ( ! empty( $extra_options['text_color'] ) ) {
-			$extra_attrs .= sprintf( ' text-color="%s"', esc_attr( $extra_options['text_color'] ) );
+			$extra_attrs .= sprintf( ' text-color-shortcode="%s"', esc_attr( $extra_options['text_color'] ) );
+		}
+		if ( ! empty( $extra_options['heading_size'] ) ) {
+			$extra_attrs .= sprintf( ' heading-size="%s"', esc_attr( $extra_options['heading_size'] ) );
+		}
+		if ( ! empty( $extra_options['text_size'] ) ) {
+			$extra_attrs .= sprintf( ' text-size="%s"', esc_attr( $extra_options['text_size'] ) );
 		}
 		
 		$api_url = function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api';
