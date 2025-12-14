@@ -24,15 +24,15 @@
       :state="state"
       :site-domain="siteDomain"
       :api-domain="apiDomain"
-      :places-validation="placesValidation"
       :solar-validation="solarValidation"
-      :is-validating-places="isValidatingPlaces"
       :is-validating-solar="isValidatingSolar"
       :is-saving="isSaving"
       @save="saveBusinessSettings"
       @show-places-api-help="showApiKeyHelp = 'places'"
       @show-solar-api-help="showApiKeyHelp = 'solar'"
       @validate-solar="validateSolarKey"
+      @reset-solar-validation="resetSolarValidation"
+      @show-reset-modal="showResetModal = true"
     />
 
     <!-- Floating Button -->
@@ -69,6 +69,14 @@
       @close="showReauthModal = false"
       @success="handleReauthSuccess"
     />
+    
+    <!-- Reset Settings Modal -->
+    <ResetSettingsModal 
+      :show="showResetModal"
+      :app-url="appUrl"
+      @close="showResetModal = false"
+      @confirm="resetAllSettings"
+    />
   </div>
 </template>
 
@@ -76,7 +84,7 @@
 import { onMounted } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { Button, Alert } from '@/components/ui'
-import { SettingsBusinessInfo, SettingsFloatingButton, SettingsShortcode, ApiKeyHelpModal } from '@/components/settings'
+import { SettingsBusinessInfo, SettingsFloatingButton, SettingsShortcode, ApiKeyHelpModal, ResetSettingsModal } from '@/components/settings'
 import ReauthModal from '@/components/ReauthModal.vue'
 import { useSettings } from '@/composables/useSettings'
 
@@ -87,16 +95,17 @@ const props = defineProps({
 const {
   state,
   showReauthModal,
+  showResetModal,
   isSaving,
   error,
   success,
   showApiKeyHelp,
-  isValidatingPlaces,
-  placesValidation,
   isValidatingSolar,
   solarValidation,
   validateSolarKey,
+  resetSolarValidation,
   apiDomain,
+  appUrl,
   siteDomain,
   loadSettings,
   saveBusinessSettings,
@@ -104,6 +113,7 @@ const {
   saveShortcodeSettings,
   openMediaLibrary,
   handleReauthSuccess,
+  resetAllSettings,
   goToDashboard
 } = useSettings(props.settings)
 

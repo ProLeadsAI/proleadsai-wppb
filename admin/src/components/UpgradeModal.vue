@@ -28,8 +28,7 @@ const upgradeUrl = computed(() => {
 const features = [
   { icon: Users, title: 'Unlimited Leads', description: 'No caps on lead generation' },
   { icon: BarChart3, title: 'Advanced Analytics', description: 'Detailed conversion tracking' },
-  { icon: Zap, title: 'Priority Support', description: 'Get help when you need it' },
-  { icon: Sparkles, title: 'Custom Branding', description: 'Remove ProLeads AI branding' }
+  { icon: Zap, title: 'Priority Support', description: 'Get help when you need it' }
 ]
 </script>
 
@@ -44,18 +43,18 @@ const features = [
         <!-- Close button -->
         <button 
           @click="emit('close')"
-          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
+          class="absolute top-4 right-4 text-white/70 hover:text-white z-10"
         >
           <X class="w-5 h-5" />
         </button>
 
         <!-- Gradient header -->
-        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-8 text-white text-center">
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-8 text-center">
           <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-4">
-            <Sparkles class="w-7 h-7" />
+            <Sparkles class="w-7 h-7 text-white" />
           </div>
-          <h2 class="text-2xl font-bold">Upgrade to Pro</h2>
-          <p class="text-emerald-100 mt-2">Unlock all features and grow your business</p>
+          <h2 class="text-2xl font-bold text-white">Upgrade to Pro</h2>
+          <p class="text-white/80 mt-2">Unlock all features and grow your business</p>
         </div>
 
         <!-- Features -->

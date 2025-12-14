@@ -5,6 +5,7 @@ import { BASE_URL } from '@/lib/api'
 
 export function useSettings(settings, emit) {
   const showReauthModal = ref(false)
+  const showResetModal = ref(false)
   const isSaving = ref(false)
   const error = ref('')
   const success = ref('')
@@ -119,6 +120,14 @@ export function useSettings(settings, emit) {
       return new URL(BASE_URL).host
     } catch {
       return 'next.proleadsai.com'
+    }
+  })
+
+  const appUrl = computed(() => {
+    try {
+      return new URL(BASE_URL).origin
+    } catch {
+      return 'https://next.proleadsai.com'
     }
   })
 
@@ -348,19 +357,33 @@ export function useSettings(settings, emit) {
     window.location.href = `${settings.adminUrl}admin.php?page=proleadsai-dashboard`
   }
 
+  async function resetAllSettings() {
+    // Use the same reset action as dev reset - clears all data and redirects to onboarding
+    try {
+      await wpAjax('proleadsai_reset_data', {}, settings)
+    } catch (e) {
+      // Ignore errors - we're resetting anyway
+      console.warn('Error resetting data:', e)
+    }
+    
+    // Redirect to onboarding page
+    window.location.href = `${settings.adminUrl}admin.php?page=proleadsai-onboarding`
+  }
+
   return {
     state,
     showReauthModal,
+    showResetModal,
     isSaving,
     error,
     success,
     showApiKeyHelp,
-    isValidatingPlaces,
-    placesValidation,
     isValidatingSolar,
     solarValidation,
     validateSolarKey,
+    resetSolarValidation,
     apiDomain,
+    appUrl,
     siteDomain,
     loadSettings,
     saveBusinessSettings,
@@ -368,6 +391,7 @@ export function useSettings(settings, emit) {
     saveShortcodeSettings,
     openMediaLibrary,
     handleReauthSuccess,
+    resetAllSettings,
     goToDashboard
   }
 }
