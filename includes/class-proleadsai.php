@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * The file that defines the core plugin class
  *
@@ -61,7 +65,7 @@ class Proleadsai {
 	 * Define the core functionality of the plugin.
 	 *
 	 * Set the plugin name and the plugin version that can be used throughout the plugin.
-	 * Load the dependencies, define the locale, and set the hooks for the admin area and
+	 * Load the dependencies, define the hooks for the admin area and
 	 * the public-facing side of the site.
 	 *
 	 * @since    1.0.0
@@ -75,11 +79,11 @@ class Proleadsai {
 		$this->plugin_name = 'proleadsai';
 
 		$this->load_dependencies();
-		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
 
 	}
+
 
 	/**
 	 * Load the required dependencies for this plugin.
@@ -87,7 +91,6 @@ class Proleadsai {
 	 * Include the following files that make up the plugin:
 	 *
 	 * - Proleadsai_Loader. Orchestrates the hooks of the plugin.
-	 * - Proleadsai_i18n. Defines internationalization functionality.
 	 * - Proleadsai_Admin. Defines all hooks for the admin area.
 	 * - Proleadsai_Public. Defines all hooks for the public side of the site.
 	 *
@@ -106,12 +109,6 @@ class Proleadsai {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-proleadsai-loader.php';
 
 		/**
-		 * The class responsible for defining internationalization functionality
-		 * of the plugin.
-		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-proleadsai-i18n.php';
-
-		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-proleadsai-admin.php';
@@ -126,23 +123,6 @@ class Proleadsai {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/Ajax/ajax-onboarding.php';
 
 		$this->loader = new Proleadsai_Loader();
-
-	}
-
-	/**
-	 * Define the locale for this plugin for internationalization.
-	 *
-	 * Uses the Proleadsai_i18n class in order to set the domain and to register the hook
-	 * with WordPress.
-	 *
-	 * @since    1.0.0
-	 * @access   private
-	 */
-	private function set_locale() {
-
-		$plugin_i18n = new Proleadsai_i18n();
-
-		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
 
 	}
 

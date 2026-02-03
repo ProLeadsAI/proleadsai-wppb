@@ -111,7 +111,9 @@ class Proleadsai_Admin {
 		if ( $this->plugin_name !== $handle ) {
 			return $tag;
 		}
-		return '<script type="module" src="' . esc_url( $src ) . '"></script>';
+		
+		// Simply add type="module" to the existing script tag
+		return str_replace( "<script", '<script type="module"', $tag );
 	}
 
 	/**

@@ -35,9 +35,9 @@ delete_option( 'proleadsai_onboarding' );
 
 // For multisite, delete options from all sites
 if ( is_multisite() ) {
-	$sites = get_sites();
-	foreach ( $sites as $site ) {
-		switch_to_blog( $site->blog_id );
+	$proleadsai_sites = get_sites();
+	foreach ( $proleadsai_sites as $proleadsai_site ) {
+		switch_to_blog( $proleadsai_site->blog_id );
 		delete_option( 'proleadsai_onboarding' );
 		restore_current_blog();
 	}

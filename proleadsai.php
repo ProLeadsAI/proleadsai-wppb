@@ -16,7 +16,7 @@
  * Plugin Name:       ProLeadsAI
  * Plugin URI:        https://proleadsai.com
  * Description:       Roofing Estimation Widget
- * Version:           1.0.1
+ * Version:           1.0.3
  * Author:            ProleadsAI
  * Author URI:        https://proleadsai.com/
  * License:           GPL-2.0+
@@ -35,13 +35,13 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'PROLEADSAI_VERSION', '1.0.1' );
+define( 'PROLEADSAI_VERSION', '1.0.3' );
 
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-proleadsai-activator.php
  */
-function activate_proleadsai() {
+function proleadsai_activate() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-proleadsai-activator.php';
 	Proleadsai_Activator::activate();
 }
@@ -50,13 +50,13 @@ function activate_proleadsai() {
  * The code that runs during plugin deactivation.
  * This action is documented in includes/class-proleadsai-deactivator.php
  */
-function deactivate_proleadsai() {
+function proleadsai_deactivate() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-proleadsai-deactivator.php';
 	Proleadsai_Deactivator::deactivate();
 }
 
-register_activation_hook( __FILE__, 'activate_proleadsai' );
-register_deactivation_hook( __FILE__, 'deactivate_proleadsai' );
+register_activation_hook( __FILE__, 'proleadsai_activate' );
+register_deactivation_hook( __FILE__, 'proleadsai_deactivate' );
 
 /**
  * The core plugin class that is used to define internationalization,
@@ -73,10 +73,10 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-proleadsai.php';
  *
  * @since    1.0.0
  */
-function run_proleadsai() {
+function proleadsai_run() {
 
 	$plugin = new Proleadsai();
 	$plugin->run();
 
 }
-run_proleadsai();
+proleadsai_run();

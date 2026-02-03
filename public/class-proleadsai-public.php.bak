@@ -60,11 +60,6 @@ class Proleadsai_Public {
 	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
-		// Get onboarding settings
-		$settings = get_option( 'proleadsai_onboarding', array() );
-		$completed = ! empty( $settings['completed'] );
-		
-		// Always enqueue styles for widget functionality
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/proleadsai-widget.css', array(), $this->version, 'all' );
 	}
 
@@ -77,12 +72,16 @@ class Proleadsai_Public {
 		// Get onboarding settings
 		$settings = get_option( 'proleadsai_onboarding', array() );
 		
-		// Check if widget should be shown
-		$show_widget = isset( $settings['show_widget'] ) ? $settings['show_widget'] : true;
-		$completed = ! empty( $settings['completed'] );
+		// Temporarily always enqueue scripts for debugging
+		$show_widget = true;
+		$completed = true;
 		
-		// Enqueue scripts if onboarding is completed (needed for shortcode too)
+		// Debug logging
+		error_log('ProLeadsAI Scripts Debug: show_widget=' . ($show_widget ? 'true' : 'false') . ', completed=' . ($completed ? 'true' : 'false'));
+		
+		// Always enqueue scripts if onboarding is completed (needed for shortcode too)
 		if ( $completed ) {
+			error_log('ProLeadsAI: Enqueueing widget scripts');
 			// Widget CSS
 			wp_enqueue_style(
 				$this->plugin_name . '-widget-css',
@@ -99,6 +98,8 @@ class Proleadsai_Public {
 				$this->version, 
 				true 
 			);
+		} else {
+			error_log('ProLeadsAI: Not enqueueing scripts - onboarding not completed');
 		}
 	}
 
@@ -108,38 +109,21 @@ class Proleadsai_Public {
 	public function render_widget() {
 		$settings = get_option( 'proleadsai_onboarding', array() );
 		
-		$show_widget = isset( $settings['show_widget'] ) ? $settings['show_widget'] : true;
-		$completed = ! empty( $settings['completed'] );
+		// Temporarily always show widget for debugging
+		$show_widget = true;
+		$completed = true;
+		
+		// Debug logging
+		error_log('ProLeadsAI Widget Debug: show_widget=' . ($show_widget ? 'true' : 'false') . ', completed=' . ($completed ? 'true' : 'false'));
+		error_log('ProLeadsAI Settings: ' . print_r($settings, true));
 		
 		if ( ! $show_widget || ! $completed ) {
 			return;
 		}
 		
+		
 		$visual_options = $this->get_visual_attributes( $settings, array(), 'floating' );
-		$widget_html = $this->get_widget_html( 'floating', $visual_options );
-		
-		// Custom KSES to allow roof-estimator element and its attributes
-		$allowed_html = wp_kses_allowed_html( 'post' );
-		$allowed_html['roof-estimator'] = array(
-			'org-id' => true,
-			'api-url' => true,
-			'google-maps-api-key' => true,
-			'primary-color' => true,
-			'text-color' => true,
-			'display-mode' => true,
-			'button-text' => true,
-			'button-emoji' => true,
-			'button-position' => true,
-			'heading' => true,
-			'bg' => true,
-			'image' => true,
-			'heading-color' => true,
-			'text-color-shortcode' => true,
-			'heading-size' => true,
-			'text-size' => true,
-		);
-		
-		echo wp_kses( $widget_html, $allowed_html );
+		echo wp_kses_post( $this->get_widget_html( 'floating', $visual_options ) );
 	}
 
 	/**
@@ -163,30 +147,7 @@ class Proleadsai_Public {
 		// Enqueue scripts/styles for shortcode usage
 		$this->enqueue_shortcode_assets();
 		
-		$widget_html = $this->get_widget_html( 'inline', $visual_options );
-		
-		// Custom KSES to allow roof-estimator element and its attributes
-		$allowed_html = wp_kses_allowed_html( 'post' );
-		$allowed_html['roof-estimator'] = array(
-			'org-id' => true,
-			'api-url' => true,
-			'google-maps-api-key' => true,
-			'primary-color' => true,
-			'text-color' => true,
-			'display-mode' => true,
-			'button-text' => true,
-			'button-emoji' => true,
-			'button-position' => true,
-			'heading' => true,
-			'bg' => true,
-			'image' => true,
-			'heading-color' => true,
-			'text-color-shortcode' => true,
-			'heading-size' => true,
-			'text-size' => true,
-		);
-		
-		return wp_kses( $widget_html, $allowed_html );
+		return $this->get_widget_html( 'inline', $visual_options );
 	}
 
 	/**
@@ -337,72 +298,57 @@ class Proleadsai_Public {
 	}
 
 	/**
-	 * Returns fully escaped widget HTML.
-	 *
-	 * @return string Safe HTML output
+	 * Generate widget HTML
 	 */
 	private function get_widget_html( $display_mode = 'floating', $extra_options = array() ) {
 		$settings = get_option( 'proleadsai_onboarding', array() );
 		
-		// For floating mode, don't use inline-specific settings
-		if ( $display_mode === 'floating' ) {
-			$button_position = $settings['button_position'] ?? 'bottom-right';
-			$primary_color = $settings['primary_color'] ?? '#facc15';
-			$text_color = $settings['text_color'] ?? '#1c1917';
-			$button_text = $settings['button_text'] ?? 'Get Roof Estimate';
-			$button_emoji = $settings['button_emoji'] ?? '🏠';
-			$org_id = $settings['team_id'] ?? '';
-			$google_maps_api_key = $settings['google_maps_api_key'] ?? '';
-			$extra_attrs = ''; // No extra attributes for floating mode
-		} else {
-			// Inline mode uses all settings including extra options
-			$button_position = $settings['button_position'] ?? 'bottom-right';
-			$primary_color = $settings['primary_color'] ?? '#facc15';
-			$text_color = $settings['text_color'] ?? '#1c1917';
-			$button_text = $settings['button_text'] ?? 'Get Roof Estimate';
-			$button_emoji = $settings['button_emoji'] ?? '🏠';
-			$org_id = $settings['team_id'] ?? '';
-			$google_maps_api_key = $settings['google_maps_api_key'] ?? '';
-			
-			// Extra attributes for inline/shortcode mode
-			$extra_attrs = '';
-			if ( ! empty( $extra_options['heading'] ) ) {
-				$extra_attrs .= sprintf( ' heading="%s"', esc_attr( $extra_options['heading'] ) );
-			}
-			if ( ! empty( $extra_options['bg_style'] ) ) {
-				$extra_attrs .= sprintf( ' bg-style="%s"', esc_attr( $extra_options['bg_style'] ) );
-			}
-			if ( ! empty( $extra_options['bg_color'] ) ) {
-				$extra_attrs .= sprintf( ' bg-color="%s"', esc_attr( $extra_options['bg_color'] ) );
-			}
-			if ( isset( $extra_options['hero_image'] ) ) {
-				$extra_attrs .= sprintf( ' hero-image="%s"', esc_attr( $extra_options['hero_image'] ) );
-			}
-			if ( ! empty( $extra_options['margin_top'] ) ) {
-				$extra_attrs .= sprintf( ' margin-top="%s"', esc_attr( $extra_options['margin_top'] ) );
-			}
-			if ( ! empty( $extra_options['margin_bottom'] ) ) {
-				$extra_attrs .= sprintf( ' margin-bottom="%s"', esc_attr( $extra_options['margin_bottom'] ) );
-			}
-			// Typography
-			if ( ! empty( $extra_options['heading_font'] ) ) {
-				$extra_attrs .= sprintf( ' heading-font="%s"', esc_attr( $extra_options['heading_font'] ) );
-			}
-			if ( ! empty( $extra_options['heading_color'] ) ) {
-				$extra_attrs .= sprintf( ' heading-color="%s"', esc_attr( $extra_options['heading_color'] ) );
-			}
-			if ( ! empty( $extra_options['text_font'] ) ) {
-				$extra_attrs .= sprintf( ' text-font="%s"', esc_attr( $extra_options['text_font'] ) );
-			}
-			if ( ! empty( $extra_options['text_color'] ) ) {
-				$extra_attrs .= sprintf( ' text-color-shortcode="%s"', esc_attr( $extra_options['text_color'] ) );
-			}
-			if ( ! empty( $extra_options['heading_size'] ) ) {
-				$extra_attrs .= sprintf( ' heading-size="%s"', esc_attr( $extra_options['heading_size'] ) );
-			}
-			if ( ! empty( $extra_options['text_size'] ) ) {
-				$extra_attrs .= sprintf( ' text-size="%s"', esc_attr( $extra_options['text_size'] ) );
-			}
+		$button_position = $settings['button_position'] ?? 'bottom-right';
+		$primary_color = $settings['primary_color'] ?? '#facc15';
+		$text_color = $settings['text_color'] ?? '#1c1917';
+		$button_text = $settings['button_text'] ?? 'Get Roof Estimate';
+		$button_emoji = $settings['button_emoji'] ?? '🏠';
+		$org_id = $settings['team_id'] ?? '';
+		$google_maps_api_key = $settings['google_maps_api_key'] ?? '';
+		
+		// Extra attributes for inline/shortcode mode
+		$extra_attrs = '';
+		if ( ! empty( $extra_options['heading'] ) ) {
+			$extra_attrs .= sprintf( ' heading="%s"', esc_attr( $extra_options['heading'] ) );
+		}
+		if ( ! empty( $extra_options['bg_style'] ) ) {
+			$extra_attrs .= sprintf( ' bg-style="%s"', esc_attr( $extra_options['bg_style'] ) );
+		}
+		if ( ! empty( $extra_options['bg_color'] ) ) {
+			$extra_attrs .= sprintf( ' bg-color="%s"', esc_attr( $extra_options['bg_color'] ) );
+		}
+		if ( isset( $extra_options['hero_image'] ) ) {
+			$extra_attrs .= sprintf( ' hero-image="%s"', esc_attr( $extra_options['hero_image'] ) );
+		}
+		if ( ! empty( $extra_options['margin_top'] ) ) {
+			$extra_attrs .= sprintf( ' margin-top="%s"', esc_attr( $extra_options['margin_top'] ) );
+		}
+		if ( ! empty( $extra_options['margin_bottom'] ) ) {
+			$extra_attrs .= sprintf( ' margin-bottom="%s"', esc_attr( $extra_options['margin_bottom'] ) );
+		}
+		// Typography
+		if ( ! empty( $extra_options['heading_font'] ) ) {
+			$extra_attrs .= sprintf( ' heading-font="%s"', esc_attr( $extra_options['heading_font'] ) );
+		}
+		if ( ! empty( $extra_options['heading_color'] ) ) {
+			$extra_attrs .= sprintf( ' heading-color="%s"', esc_attr( $extra_options['heading_color'] ) );
+		}
+		if ( ! empty( $extra_options['text_font'] ) ) {
+			$extra_attrs .= sprintf( ' text-font="%s"', esc_attr( $extra_options['text_font'] ) );
+		}
+		if ( ! empty( $extra_options['text_color'] ) ) {
+			$extra_attrs .= sprintf( ' text-color-shortcode="%s"', esc_attr( $extra_options['text_color'] ) );
+		}
+		if ( ! empty( $extra_options['heading_size'] ) ) {
+			$extra_attrs .= sprintf( ' heading-size="%s"', esc_attr( $extra_options['heading_size'] ) );
+		}
+		if ( ! empty( $extra_options['text_size'] ) ) {
+			$extra_attrs .= sprintf( ' text-size="%s"', esc_attr( $extra_options['text_size'] ) );
 		}
 		
 		$api_url = function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api';
