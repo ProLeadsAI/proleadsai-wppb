@@ -159,7 +159,7 @@
       <button class="plai-panel-close">&times;</button>
       <roof-estimator
         org-id="${config.orgId || ''}"
-        api-url="${config.apiUrl || 'https://next.proleadsai.com/api'}"
+        api-url="${config.apiUrl || 'https://app.proleadsai.com/api'}"
         google-maps-api-key="${config.googleMapsApiKey || ''}"
         primary-color="${config.primaryColor || '#1d4ed8'}"
       ></roof-estimator>

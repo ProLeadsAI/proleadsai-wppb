@@ -24,7 +24,7 @@ function proleadsai_get_base_url() {
     }
     
     // Fallback to production
-    return 'https://next.proleadsai.com';
+    return 'https://app.proleadsai.com';
 }
 
 /**
@@ -427,7 +427,7 @@ function proleadsai_validate_api_key() {
         $wp_base_url = get_site_url();
     }
 
-    $base_url = function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://next.proleadsai.com';
+    $base_url = function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://app.proleadsai.com';
     $endpoint = rtrim($base_url, '/') . '/api/wordpress/auth/validate-maps-key';
 
     $response = proleadsai_api_request($endpoint, array(
@@ -489,7 +489,7 @@ function proleadsai_validate_solar_api() {
         return;
     }
 
-    $base_url = function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://next.proleadsai.com';
+    $base_url = function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://app.proleadsai.com';
     $endpoint = rtrim($base_url, '/') . '/api/wordpress/auth/validate-maps-key';
 
     $response = proleadsai_api_request($endpoint, array(

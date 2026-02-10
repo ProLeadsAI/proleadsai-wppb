@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     return {
       name: 'php-env',
       closeBundle() {
-        const baseUrl = env.VITE_BASE_URL || 'https://next.proleadsai.com'
+        const baseUrl = env.VITE_BASE_URL || 'https://app.proleadsai.com'
         const apiMode = env.VITE_API_MODE || 'prod'
         
         const phpConfig = `<?php

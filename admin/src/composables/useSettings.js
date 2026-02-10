@@ -121,7 +121,7 @@ export function useSettings(settings, emit) {
     try {
       return new URL(BASE_URL).host
     } catch {
-      return 'next.proleadsai.com'
+      return 'app.proleadsai.com'
     }
   })
 
@@ -129,7 +129,7 @@ export function useSettings(settings, emit) {
     try {
       return new URL(BASE_URL).origin
     } catch {
-      return 'https://next.proleadsai.com'
+      return 'https://app.proleadsai.com'
     }
   })
 

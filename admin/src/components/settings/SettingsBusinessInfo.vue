@@ -220,7 +220,7 @@ watch(() => props.state.google_solar_api_key, (newKey) => {
           <!-- Solar API Validation Results -->
           <div v-if="solarValidation.checked" class="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mt-3">
             <p class="text-sm font-medium">Solar API Validation (Server-Side)</p>
-            <p class="text-xs text-muted-foreground mb-2">Tested from: <strong>{{ apiDomain || 'next.proleadsai.com' }}</strong></p>
+            <p class="text-xs text-muted-foreground mb-2">Tested from: <strong>{{ apiDomain || 'app.proleadsai.com' }}</strong></p>
 
             <div class="flex items-center gap-2">
               <div :class="solarValidation.valid ? 'text-green-600' : 'text-red-600'">

@@ -405,7 +405,7 @@ class Proleadsai_Public {
 			}
 		}
 		
-		$api_url = function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api';
+		$api_url = function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://app.proleadsai.com/api';
 		
 		return sprintf(
 			'<roof-estimator

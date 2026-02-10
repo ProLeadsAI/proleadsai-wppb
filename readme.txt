@@ -4,10 +4,11 @@ Donate link: https://proleadsai.com/
 Tags: roofing, lead generation, roof estimate, google maps
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Language: en_US
 
 Add an instant roof estimate widget to your WordPress site. Visitors enter their address and get roof size, cost estimates, and pitch information.
 
@@ -19,7 +20,7 @@ ProLeadsAI adds a powerful roof estimation tool to your WordPress site. When vis
 
 This plugin connects to the following external services:
 
-**ProLeadsAI API** (https://next.proleadsai.com)
+**ProLeadsAI API** (https://app.proleadsai.com)
 
 * Used for: User authentication, lead management, roof estimation data processing, and dashboard analytics
 * Data sent: Address searches, lead contact information (name, email, phone), roof estimation requests
@@ -157,7 +158,7 @@ ProLeadsAI respects user privacy and is designed with privacy in mind.
 
 = Data Storage =
 
-* Visitor data (searches and leads) is stored on ProLeadsAI servers (https://next.proleadsai.com)
+* Visitor data (searches and leads) is stored on ProLeadsAI servers (https://app.proleadsai.com)
 * Data is associated with your organization account and accessible via your dashboard
 * No visitor data is stored in the WordPress database
 

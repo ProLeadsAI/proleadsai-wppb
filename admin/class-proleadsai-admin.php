@@ -92,8 +92,8 @@ class Proleadsai_Admin {
 		
 		// Pass data to JS
 		wp_localize_script( $this->plugin_name, 'proleadsaiSettings', array(
-			'baseUrl' => function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://next.proleadsai.com',
-			'apiUrl' => function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://next.proleadsai.com/api',
+			'baseUrl' => function_exists('proleadsai_get_base_url') ? proleadsai_get_base_url() : 'https://app.proleadsai.com',
+			'apiUrl' => function_exists('proleadsai_get_api_url') ? proleadsai_get_api_url() : 'https://app.proleadsai.com/api',
 			'version' => $this->version,
 			'nonce' => wp_create_nonce( 'wp_rest' ),
 			'adminAjax' => admin_url( 'admin-ajax.php' ),

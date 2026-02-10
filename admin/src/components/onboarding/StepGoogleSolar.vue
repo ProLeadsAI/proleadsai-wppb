@@ -93,7 +93,7 @@ async function handleValidate() {
     <div v-if="validation.checked" class="space-y-3 p-4 bg-muted rounded-lg">
       <p class="text-sm font-medium">Solar API Validation (Server-Side)</p>
       <p class="text-xs text-muted-foreground mb-2">
-        Tested from: <strong>next.proleadsai.com</strong>
+        Tested from: <strong>app.proleadsai.com</strong>
       </p>
 
       <!-- Solar API -->

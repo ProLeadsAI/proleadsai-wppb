@@ -14,7 +14,7 @@ export function useApiValidation(settings) {
         places: { valid: false, message: '' }
       },
       app: {
-        host: 'next.proleadsai.com',
+        host: 'app.proleadsai.com',
         places: { valid: false, message: '' }
       }
     }

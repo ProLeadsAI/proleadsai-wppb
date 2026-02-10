@@ -7,7 +7,7 @@
  */
 
 // Base URL set at build time via .env files (without /api suffix)
-const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://next.proleadsai.com'
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://app.proleadsai.com'
 const API_URL = `${BASE_URL}/api`
 const API_MODE = import.meta.env.VITE_API_MODE || 'prod'
 

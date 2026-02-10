@@ -52,7 +52,7 @@ export function useOnboarding(settings, emit) {
     try {
       return new URL(BASE_URL).host
     } catch {
-      return 'next.proleadsai.com'
+      return 'app.proleadsai.com'
     }
   })
 
