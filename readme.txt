@@ -4,7 +4,7 @@ Donate link: https://proleadsai.com/
 Tags: roofing, lead generation, roof estimate, google maps
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.0.3
+Stable tag: 1.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -37,6 +37,8 @@ This plugin connects to the following external services:
 * Privacy Policy: https://policies.google.com/privacy
 
 By installing and activating this plugin, you agree to the terms of service of these external services.
+
+**Note:** This plugin integrates with external services and requires user-provided configuration (API keys and account connection) to enable estimation features. The plugin installs and activates without this configuration and does not transmit any data until onboarding is completed.
 
 * **Roof Area** - Total square footage calculated from satellite imagery
 * **Cost Estimate** - Based on your configured price per square
@@ -109,37 +111,33 @@ Yes! You can set primary and secondary colors, button position, and whether to s
 
 == Screenshots ==
 
-1. Roof estimate results with interactive map
-2. Admin settings page
-3. Floating widget button
-4. Lead capture form
+1. Floating widget button on a live site
+2. Slide-out panel that opens when clicking the floating widget
+3. Address autocomplete powered by Google Places
+4. Roof estimate results with satellite map, square footage, and cost estimate
+5. Confirmation view after a lead submits the contact form
+6. WordPress admin dashboard
+7. Floating button appearance and position settings
+8. Shortcode settings to embed the widget anywhere on your site
 
 == Changelog ==
-
-= 1.0.2 =
-* Improved: Settings page now auto-validates API keys when changed
-* Improved: Reset settings functionality
-* Improved: Upgrade modal styling
-* Fixed: Proper cleanup of plugin data on uninstall
-
-= 1.0.1 =
-* Fixed: Modal/slide-out shadow overlay now properly clears when closing
-* Fixed: Backend now uses organization's Google Maps API key for Solar API calls
-* Improved: Better error messages when API key is not configured
 
 = 1.0.0 =
 * Initial release
 * Instant roof estimates from address input
 * Google Places autocomplete for address search
-* Interactive roof outline map
-* Lead capture form
-* Customizable appearance settings
-* Floating button and shortcode options
+* Interactive satellite roof map with outline overlay
+* Roof area, cost estimate, and pitch analysis
+* Lead capture contact form
+* Floating button widget with customizable position and colors
+* Shortcode embed for placing the widget anywhere on your site
+* WordPress admin dashboard for settings and API key management
+* Shadow DOM CSS isolation to prevent theme style conflicts
 
 == Upgrade Notice ==
 
-= 1.0.1 =
-Fixes overlay display issues and ensures your Google API key is used for all API calls.
+= 1.0.0 =
+Initial release.
 
 == Privacy Policy ==
 
