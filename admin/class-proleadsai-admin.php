@@ -133,7 +133,7 @@ class Proleadsai_Admin {
 				'proleadsai-dashboard', 
 				array( $this, 'display_page' ), 
 				'dashicons-admin-home', 
-				6
+				99
 			);
 			
 			// Submenu pages
@@ -162,7 +162,7 @@ class Proleadsai_Admin {
 				'proleadsai-onboarding', 
 				array( $this, 'display_page' ), 
 				'dashicons-admin-home', 
-				6
+				99
 			);
 		}
 	}

@@ -59,7 +59,7 @@ function proleadsai_verify_ajax_request() {
     if (empty($nonce)) {
         $json = file_get_contents('php://input');
         $data = json_decode($json, true);
-        $nonce = $data['_wpnonce'] ?? '';
+        $nonce = isset($data['_wpnonce']) ? sanitize_text_field(wp_unslash($data['_wpnonce'])) : '';
     }
     
     if (!wp_verify_nonce($nonce, 'wp_rest')) {
@@ -598,13 +598,13 @@ function proleadsai_proxy_get_settings() {
     // Sync API data back to WordPress
     if ($data) {
         $updates = array();
-        if (!empty($data['name'])) $updates['business'] = $data['name'];
-        if (!empty($data['email'])) $updates['email'] = $data['email'];
-        if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = $data['googleMapsApiKey'];
-        if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = $data['googleSolarApiKey'];
-        if (isset($data['pricePerSq'])) $updates['price_per_sq'] = strval($data['pricePerSq']);
-        if (!empty($data['timezone'])) $updates['timezone'] = $data['timezone'];
-        if (!empty($data['id'])) $updates['team_id'] = $data['id'];
+        if (!empty($data['name'])) $updates['business'] = sanitize_text_field($data['name']);
+        if (!empty($data['email'])) $updates['email'] = sanitize_email($data['email']);
+        if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = sanitize_text_field($data['googleMapsApiKey']);
+        if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = sanitize_text_field($data['googleSolarApiKey']);
+        if (isset($data['pricePerSq'])) $updates['price_per_sq'] = sanitize_text_field(strval($data['pricePerSq']));
+        if (!empty($data['timezone'])) $updates['timezone'] = sanitize_text_field($data['timezone']);
+        if (!empty($data['id'])) $updates['team_id'] = sanitize_text_field($data['id']);
         
         if (!empty($updates)) {
             $current = get_option('proleadsai_onboarding', array());
@@ -738,11 +738,11 @@ function proleadsai_proxy_save_settings() {
     
     // Sync to WordPress after successful API save
     $updates = array();
-    if (isset($data['name'])) $updates['business'] = $data['name'];
-    if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = $data['googleMapsApiKey'];
-    if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = $data['googleSolarApiKey'];
-    if (isset($data['pricePerSq'])) $updates['price_per_sq'] = strval($data['pricePerSq']);
-    if (isset($data['timezone'])) $updates['timezone'] = $data['timezone'];
+    if (isset($data['name'])) $updates['business'] = sanitize_text_field($data['name']);
+    if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = sanitize_text_field($data['googleMapsApiKey']);
+    if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = sanitize_text_field($data['googleSolarApiKey']);
+    if (isset($data['pricePerSq'])) $updates['price_per_sq'] = sanitize_text_field(strval($data['pricePerSq']));
+    if (isset($data['timezone'])) $updates['timezone'] = sanitize_text_field($data['timezone']);
     
     if (!empty($updates)) {
         $current = get_option('proleadsai_onboarding', array());

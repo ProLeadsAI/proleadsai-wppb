@@ -74,6 +74,8 @@ mkdir -p "$BUILD_DIR/$PLUGIN_NAME/admin"
 cp "$PLUGIN_DIR/admin/class-proleadsai-admin.php" "$BUILD_DIR/$PLUGIN_NAME/admin/"
 cp "$PLUGIN_DIR/admin/index.php" "$BUILD_DIR/$PLUGIN_NAME/admin/"
 cp -r "$PLUGIN_DIR/admin/dist" "$BUILD_DIR/$PLUGIN_NAME/admin/"
+# Remove backup file that shouldn't be included
+rm -f "$BUILD_DIR/$PLUGIN_NAME/admin/dist/class-proleadsai-public.php"
 # Public
 mkdir -p "$BUILD_DIR/$PLUGIN_NAME/public/js" "$BUILD_DIR/$PLUGIN_NAME/public/css"
 cp "$PLUGIN_DIR/public/class-proleadsai-public.php" "$BUILD_DIR/$PLUGIN_NAME/public/"

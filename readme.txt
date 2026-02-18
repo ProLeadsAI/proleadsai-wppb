@@ -36,6 +36,14 @@ This plugin connects to the following external services:
 * Terms of Service: https://cloud.google.com/maps-platform/terms
 * Privacy Policy: https://policies.google.com/privacy
 
+**ProLeadsAI CDN** (https://cdn.proleadsai.com)
+
+* Used for: Default widget images and icons (house image, location icons)
+* Data sent: None (static image assets only)
+* When: When the widget loads and displays default images
+* Terms of Service: https://proleadsai.com/terms
+* Privacy Policy: https://proleadsai.com/privacy
+
 By installing and activating this plugin, you agree to the terms of service of these external services.
 
 **Note:** This plugin integrates with external services and requires user-provided configuration (API keys and account connection) to enable estimation features. The plugin installs and activates without this configuration and does not transmit any data until onboarding is completed.
