@@ -1,6 +1,5 @@
 === ProLeadsAI ===
-Contributors: proleadsai
-Donate link: https://proleadsai.com/
+Contributors: tzitzi
 Tags: roofing, lead generation, roof estimate, google maps
 Requires at least: 5.0
 Tested up to: 6.9
@@ -127,6 +126,27 @@ Yes! You can set primary and secondary colors, button position, and whether to s
 6. WordPress admin dashboard
 7. Floating button appearance and position settings
 8. Shortcode settings to embed the widget anywhere on your site
+
+== Source Code ==
+
+This plugin uses build tools to generate optimized JavaScript and CSS files. The complete source code is publicly available:
+
+**Main Plugin Repository**: https://github.com/ProLeadsAI/proleadsai-wppb
+- WordPress plugin files, PHP backend, admin interface
+- Admin assets built with Vite.js from `/admin/src/` directory
+
+**Custom Widget Element**: https://github.com/ProLeadsAI/proleadsai-custom-element
+- Standalone Vue.js custom element for the roof estimator widget
+- Built independently and copied into the WordPress plugin
+- Uses Shadow DOM for CSS isolation
+- Can be used on any website, not just WordPress
+
+**Build Process**:
+- Main plugin: Run `pnpm build` to generate admin assets
+- Custom widget: Run `pnpm build` in the custom element directory, then copy dist files to plugin's `/public/js/` and `/public/css/` directories
+- Full release: Run `pnpm release` to create complete plugin package
+
+All source code is available for review, study, and contribution in accordance with open source principles.
 
 == Changelog ==
 
