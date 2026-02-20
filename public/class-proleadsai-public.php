@@ -60,6 +60,11 @@ class Proleadsai_Public {
 	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
+		// Don't load on admin pages
+		if (is_admin()) {
+			return;
+		}
+		
 		// Get onboarding settings
 		$settings = get_option( 'proleadsai_onboarding', array() );
 		$completed = ! empty( $settings['completed'] );
@@ -74,6 +79,11 @@ class Proleadsai_Public {
 	 * @since    1.0.0
 	 */
 	public function enqueue_scripts() {
+		// Don't load on admin pages
+		if (is_admin()) {
+			return;
+		}
+		
 		// Get onboarding settings
 		$settings = get_option( 'proleadsai_onboarding', array() );
 		

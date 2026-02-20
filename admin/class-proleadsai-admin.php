@@ -59,10 +59,12 @@ class Proleadsai_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_styles() {
-		// Use file modification time for cache busting
+	public function enqueue_styles( $hook ) {
+		if ( strpos( $hook, 'proleadsai' ) === false ) {
+			return;
+		}
 		$css_file = plugin_dir_path( __FILE__ ) . 'dist/proleadsai-admin.css';
-		$css_version = file_exists($css_file) ? filemtime($css_file) : $this->version;
+		$css_version = file_exists( $css_file ) ? filemtime( $css_file ) : $this->version;
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'dist/proleadsai-admin.css', array(), $css_version, 'all' );
 	}
 
@@ -71,16 +73,17 @@ class Proleadsai_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_scripts() {
+	public function enqueue_scripts( $hook ) {
+		if ( strpos( $hook, 'proleadsai' ) === false ) {
+			return;
+		}
 
-		// Enqueue WordPress media library for image uploads
 		wp_enqueue_media();
 
-		// Enqueue the Vue app - use file modification time for cache busting
 		$js_file = plugin_dir_path( __FILE__ ) . 'dist/proleadsai-admin.js';
-		$js_version = file_exists($js_file) ? filemtime($js_file) : $this->version;
+		$js_version = file_exists( $js_file ) ? filemtime( $js_file ) : $this->version;
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'dist/proleadsai-admin.js', array(), $js_version, true );
-		
+
 		// Determine current page
 		$screen = get_current_screen();
 		$page = 'onboarding';
@@ -172,7 +175,7 @@ class Proleadsai_Admin {
 	 */
 	public function display_page() {
 		?>
-		<div class="wrap">
+		<div class="wrap proleadsai-admin">
 			<div id="proleadsai-app"></div>
 		</div>
 		<?php
