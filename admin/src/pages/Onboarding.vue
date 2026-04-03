@@ -49,30 +49,16 @@
           <StepBusiness 
             v-if="currentStep === 2"
             v-model="state.business"
+            :organizations="availableOrganizations"
+            :selected-org-id="state.selected_org_id"
+            :requires-selection="requiresOrganizationSelection"
+            @update:selected-org-id="applySelectedOrganization(availableOrganizations.find(org => org.id === $event) || null)"
             @submit="nextStep"
           />
 
-          <!-- Step 3: Google Maps API Key -->
-          <StepGoogleMaps 
-            v-if="currentStep === 3"
-            v-model="state.google_maps_api_key"
-            :site-domain="siteDomain"
-            :api-domain="apiDomain"
-            @validation-complete="handleMapsValidationComplete"
-            @show-fix-modal="showApiFixModal = $event"
-          />
-
-          <!-- Step 4: Google Solar API Key -->
-          <StepGoogleSolar 
-            v-if="currentStep === 4"
-            v-model="state.google_solar_api_key"
-            :settings="settings"
-            @validation-complete="handleSolarValidationComplete"
-          />
-
-          <!-- Step 5: Theme & Pricing -->
+          <!-- Step 3: Theme & Pricing -->
           <StepTheme 
-            v-if="currentStep === 5"
+            v-if="currentStep === 3"
             :state="state"
             @update:primary_color="state.primary_color = $event"
             @update:text_color="state.text_color = $event"
@@ -103,14 +89,6 @@
       </div>
     </div>
 
-    <!-- API Fix Modal -->
-    <ApiFixModal 
-      :type="showApiFixModal"
-      :site-domain="siteDomain"
-      :api-domain="apiDomain"
-      @close="showApiFixModal = null"
-      @revalidate="() => { showApiFixModal = null; validatePlacesApiKey(true) }"
-    />
   </div>
 </template>
 
@@ -118,7 +96,7 @@
 import { onMounted } from 'vue'
 import { Check, ChevronLeft } from 'lucide-vue-next'
 import { Button, Card } from '@/components/ui'
-import { StepWelcome, StepEmail, StepBusiness, StepGoogleMaps, StepGoogleSolar, StepTheme, ApiFixModal } from '@/components/onboarding'
+import { StepWelcome, StepEmail, StepBusiness, StepTheme } from '@/components/onboarding'
 import { useOnboarding } from '@/composables/useOnboarding'
 
 const props = defineProps({
@@ -136,16 +114,15 @@ const {
   codeSent,
   isChangingEmail,
   cooldown,
-  showApiFixModal,
-  apiDomain,
+  availableOrganizations,
+  requiresOrganizationSelection,
   siteDomain,
   canProceed,
   loadState,
   handleChangeEmail,
   sendVerificationCode,
   verifyCode,
-  handleMapsValidationComplete,
-  handleSolarValidationComplete,
+  applySelectedOrganization,
   nextStep,
   prevStep
 } = useOnboarding(props.settings, emit)

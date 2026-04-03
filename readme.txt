@@ -1,6 +1,6 @@
 === ProLeadsAI ===
 Contributors: tzitzi
-Tags: roofing, lead generation, roof estimate, google maps
+Tags: roofing, lead generation, roof estimate, iframe
 Requires at least: 5.0
 Tested up to: 6.9
 Stable tag: 1.0.0
@@ -27,14 +27,6 @@ This plugin connects to the following external services:
 * Terms of Service: https://proleadsai.com/terms
 * Privacy Policy: https://proleadsai.com/privacy
 
-**Google Maps Platform APIs**
-
-* Used for: Address autocomplete, geocoding, satellite imagery for roof analysis, and Solar API for roof measurements
-* Data sent: Address queries, geographic coordinates
-* When: When visitors search for an address or view roof estimates
-* Terms of Service: https://cloud.google.com/maps-platform/terms
-* Privacy Policy: https://policies.google.com/privacy
-
 **ProLeadsAI CDN** (https://cdn.proleadsai.com)
 
 * Used for: Default widget images and icons (house image, location icons)
@@ -45,7 +37,7 @@ This plugin connects to the following external services:
 
 By installing and activating this plugin, you agree to the terms of service of these external services.
 
-**Note:** This plugin integrates with external services and requires user-provided configuration (API keys and account connection) to enable estimation features. The plugin installs and activates without this configuration and does not transmit any data until onboarding is completed.
+**Note:** This plugin integrates with external services and requires account connection to enable estimation features. The plugin installs and activates without this configuration and does not transmit any data until onboarding is completed.
 
 * **Roof Area** - Total square footage calculated from satellite imagery
 * **Cost Estimate** - Based on your configured price per square
@@ -65,11 +57,6 @@ The widget captures leads when visitors request a detailed quote, sending their 
 = Requirements =
 
 * ProLeadsAI account (free to create at proleadsai.com)
-* Google Maps API key with the following APIs enabled:
-  * Maps JavaScript API
-  * Places API
-  * Geocoding API
-  * Solar API
 
 == Installation ==
 
@@ -77,8 +64,7 @@ The widget captures leads when visitors request a detailed quote, sending their 
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Go to ProLeadsAI in the admin menu to complete setup
 4. Create or connect your ProLeadsAI account
-5. Add your Google Maps API key (see FAQ for setup instructions)
-6. Configure your price per square foot and appearance settings
+5. Configure your price per square foot and appearance settings
 
 = Shortcode Usage =
 
@@ -92,21 +78,9 @@ Or with custom options:
 
 == Frequently Asked Questions ==
 
-= How do I get a Google Maps API key? =
+= Do I need my own Google Maps or Solar API key? =
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Create a new project or select an existing one
-3. Enable these APIs: Maps JavaScript API, Places API, Geocoding API, Solar API
-4. Go to Credentials > Create Credentials > API Key
-5. Configure HTTP referrer restrictions for your domain
-6. Copy the key to your ProLeadsAI settings
-
-= Why do I need my own Google API key? =
-
-Each WordPress site uses its own Google API key so you can:
-* Control your own API costs and usage limits
-* Monitor usage in your Google Cloud Console
-* Keep billing separate from the ProLeadsAI service
+No. The WordPress plugin now uses the hosted ProLeadsAI iframe widget, so Google Maps and Solar API keys are handled by the ProLeadsAI application layer rather than configured in WordPress.
 
 = How accurate are the roof estimates? =
 
@@ -120,7 +94,7 @@ Yes! You can set primary and secondary colors, button position, and whether to s
 
 1. Floating widget button on a live site
 2. Slide-out panel that opens when clicking the floating widget
-3. Address autocomplete powered by Google Places
+3. Address search inside the hosted ProLeadsAI iframe
 4. Roof estimate results with satellite map, square footage, and cost estimate
 5. Confirmation view after a lead submits the contact form
 6. WordPress admin dashboard
@@ -136,14 +110,12 @@ This plugin uses build tools to generate optimized JavaScript and CSS files. The
 - Admin assets built with Vite.js from `/admin/src/` directory
 
 **Custom Widget Element**: https://github.com/ProLeadsAI/proleadsai-custom-element
-- Standalone Vue.js custom element for the roof estimator widget
-- Built independently and copied into the WordPress plugin
-- Uses Shadow DOM for CSS isolation
+- Standalone Vue.js widget and hosted iframe for the roof estimator experience
 - Can be used on any website, not just WordPress
 
 **Build Process**:
 - Main plugin: Run `pnpm build` to generate admin assets
-- Custom widget: Run `pnpm build` in the custom element directory, then copy dist files to plugin's `/public/js/` and `/public/css/` directories
+- Hosted widget repo: Run `pnpm build` in the custom element directory to publish the hosted iframe/widget assets
 - Full release: Run `pnpm release` to create complete plugin package
 
 All source code is available for review, study, and contribution in accordance with open source principles.
@@ -159,8 +131,8 @@ All source code is available for review, study, and contribution in accordance w
 * Lead capture contact form
 * Floating button widget with customizable position and colors
 * Shortcode embed for placing the widget anywhere on your site
-* WordPress admin dashboard for settings and API key management
-* Shadow DOM CSS isolation to prevent theme style conflicts
+* WordPress admin dashboard for business and appearance settings
+* Hosted iframe integration for public widget rendering
 
 == Upgrade Notice ==
 
@@ -190,7 +162,7 @@ ProLeadsAI respects user privacy and is designed with privacy in mind.
 
 = Data Sharing =
 
-* Address data is sent to Google Maps APIs for geocoding and roof analysis
+* Address data is sent to ProLeadsAI services for geocoding and roof analysis
 * No data is sold or shared with third parties for marketing purposes
 
 = User Rights =

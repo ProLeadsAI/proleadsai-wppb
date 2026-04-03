@@ -168,21 +168,31 @@ function proleadsai_create_business() {
     
     $user_id = sanitize_text_field($data['userId'] ?? '');
     $business_name = sanitize_text_field($data['businessName'] ?? '');
+    $organization_id = sanitize_text_field($data['organizationId'] ?? '');
     
-    if (empty($user_id) || empty($business_name)) {
-        wp_send_json_error(array('message' => 'userId and businessName are required'));
+    if (empty($user_id) || (empty($business_name) && empty($organization_id))) {
+        wp_send_json_error(array('message' => 'userId and either businessName or organizationId are required'));
         return;
     }
     
     $api_url = proleadsai_get_api_url();
+
+    $body = array(
+        'userId' => $user_id,
+        'siteUrl' => get_site_url()
+    );
+
+    if (!empty($business_name)) {
+        $body['businessName'] = $business_name;
+    }
+
+    if (!empty($organization_id)) {
+        $body['organizationId'] = $organization_id;
+    }
     
     $response = proleadsai_api_request($api_url . '/wordpress/auth/create-business', array(
         'method' => 'POST',
-        'body' => json_encode(array(
-            'userId' => $user_id,
-            'businessName' => $business_name,
-            'siteUrl' => get_site_url()
-        ))
+        'body' => json_encode($body)
     ));
     
     if (is_wp_error($response)) {
@@ -204,7 +214,7 @@ function proleadsai_create_business() {
 add_action('wp_ajax_proleadsai_create_business', 'proleadsai_create_business');
 
 /**
- * Update organization settings (Google Maps API key, price per sq ft)
+ * Update organization settings
  */
 function proleadsai_update_settings() {
     proleadsai_verify_ajax_request();
@@ -227,14 +237,6 @@ function proleadsai_update_settings() {
         $body['businessName'] = sanitize_text_field($data['businessName']);
     }
     
-    if (isset($data['googleMapsApiKey'])) {
-        $body['googleMapsApiKey'] = sanitize_text_field($data['googleMapsApiKey']);
-    }
-
-    if (isset($data['googleSolarApiKey'])) {
-        $body['googleSolarApiKey'] = sanitize_text_field($data['googleSolarApiKey']);
-    }
-    
     if (isset($data['pricePerSq'])) {
         $body['pricePerSq'] = intval($data['pricePerSq']);
     }
@@ -242,6 +244,12 @@ function proleadsai_update_settings() {
     if (isset($data['timezone'])) {
         $body['timezone'] = sanitize_text_field($data['timezone']);
     }
+
+    if (isset($data['organizationId'])) {
+        $body['organizationId'] = sanitize_text_field($data['organizationId']);
+    }
+
+    $body['siteUrl'] = get_site_url();
     
     $response = proleadsai_api_request($api_url . '/wordpress/auth/update-settings', array(
         'method' => 'POST',
@@ -267,7 +275,7 @@ function proleadsai_update_settings() {
 add_action('wp_ajax_proleadsai_update_settings', 'proleadsai_update_settings');
 
 /**
- * Get user's existing WordPress organization
+ * Get user's connectable organizations for this WordPress site
  */
 function proleadsai_get_user_org() {
     proleadsai_verify_ajax_request();
@@ -276,6 +284,7 @@ function proleadsai_get_user_org() {
     $data = json_decode($json, true);
     
     $user_id = sanitize_text_field($data['userId'] ?? '');
+    $site_url = esc_url_raw($data['siteUrl'] ?? get_site_url());
     
     if (empty($user_id)) {
         wp_send_json_error(array('message' => 'userId is required'));
@@ -284,7 +293,7 @@ function proleadsai_get_user_org() {
     
     $api_url = proleadsai_get_api_url();
     
-    $response = proleadsai_api_request($api_url . '/wordpress/auth/user-org?userId=' . urlencode($user_id), array(
+    $response = proleadsai_api_request($api_url . '/wordpress/auth/user-org?userId=' . urlencode($user_id) . '&siteUrl=' . urlencode($site_url), array(
         'method' => 'GET'
     ));
     
@@ -600,8 +609,7 @@ function proleadsai_proxy_get_settings() {
         $updates = array();
         if (!empty($data['name'])) $updates['business'] = sanitize_text_field($data['name']);
         if (!empty($data['email'])) $updates['email'] = sanitize_email($data['email']);
-        if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = sanitize_text_field($data['googleMapsApiKey']);
-        if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = sanitize_text_field($data['googleSolarApiKey']);
+        if (!empty($data['domainName'])) $updates['domain_name'] = esc_url_raw($data['domainName']);
         if (isset($data['pricePerSq'])) $updates['price_per_sq'] = sanitize_text_field(strval($data['pricePerSq']));
         if (!empty($data['timezone'])) $updates['timezone'] = sanitize_text_field($data['timezone']);
         if (!empty($data['id'])) $updates['team_id'] = sanitize_text_field($data['id']);
@@ -707,10 +715,9 @@ function proleadsai_proxy_save_settings() {
     
     $body = array();
     if (isset($data['name'])) $body['name'] = sanitize_text_field($data['name']);
-    if (isset($data['googleMapsApiKey'])) $body['googleMapsApiKey'] = sanitize_text_field($data['googleMapsApiKey']);
-    if (isset($data['googleSolarApiKey'])) $body['googleSolarApiKey'] = sanitize_text_field($data['googleSolarApiKey']);
     if (isset($data['pricePerSq'])) $body['pricePerSq'] = intval($data['pricePerSq']);
     if (isset($data['timezone'])) $body['timezone'] = sanitize_text_field($data['timezone']);
+    $body['domainName'] = get_site_url();
     
     $response = proleadsai_api_request($api_url . '/wordpress/settings', array(
         'method' => 'POST',
@@ -739,8 +746,7 @@ function proleadsai_proxy_save_settings() {
     // Sync to WordPress after successful API save
     $updates = array();
     if (isset($data['name'])) $updates['business'] = sanitize_text_field($data['name']);
-    if (isset($data['googleMapsApiKey'])) $updates['google_maps_api_key'] = sanitize_text_field($data['googleMapsApiKey']);
-    if (isset($data['googleSolarApiKey'])) $updates['google_solar_api_key'] = sanitize_text_field($data['googleSolarApiKey']);
+    $updates['domain_name'] = esc_url_raw(get_site_url());
     if (isset($data['pricePerSq'])) $updates['price_per_sq'] = sanitize_text_field(strval($data['pricePerSq']));
     if (isset($data['timezone'])) $updates['timezone'] = sanitize_text_field($data['timezone']);
     

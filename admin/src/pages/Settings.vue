@@ -22,16 +22,8 @@
     <!-- Business Settings -->
     <SettingsBusinessInfo 
       :state="state"
-      :site-domain="siteDomain"
-      :api-domain="apiDomain"
-      :solar-validation="solarValidation"
-      :is-validating-solar="isValidatingSolar"
       :is-saving="isSaving"
       @save="saveBusinessSettings"
-      @show-places-api-help="showApiKeyHelp = 'places'"
-      @show-solar-api-help="showApiKeyHelp = 'solar'"
-      @validate-solar="validateSolarKey"
-      @reset-solar-validation="resetSolarValidation"
       @show-reset-modal="showResetModal = true"
     />
 
@@ -51,15 +43,6 @@
       @open-media="openMediaLibrary"
     />
 
-    <!-- API Key Help Modal -->
-    <ApiKeyHelpModal 
-      :show="!!showApiKeyHelp"
-      :type="showApiKeyHelp"
-      :site-domain="siteDomain"
-      :api-domain="apiDomain"
-      @close="showApiKeyHelp = null"
-    />
-    
     <!-- Reauth Modal -->
     <ReauthModal 
       :show="showReauthModal"
@@ -84,7 +67,7 @@
 import { onMounted } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { Button, Alert } from '@/components/ui'
-import { SettingsBusinessInfo, SettingsFloatingButton, SettingsShortcode, ApiKeyHelpModal, ResetSettingsModal } from '@/components/settings'
+import { SettingsBusinessInfo, SettingsFloatingButton, SettingsShortcode, ResetSettingsModal } from '@/components/settings'
 import ReauthModal from '@/components/ReauthModal.vue'
 import { useSettings } from '@/composables/useSettings'
 
@@ -99,14 +82,7 @@ const {
   isSaving,
   error,
   success,
-  showApiKeyHelp,
-  isValidatingSolar,
-  solarValidation,
-  validateSolarKey,
-  resetSolarValidation,
-  apiDomain,
   appUrl,
-  siteDomain,
   loadSettings,
   saveBusinessSettings,
   saveAppearance,

@@ -14,7 +14,7 @@ export function useDashboard(settings) {
     user_id: '',
     business: '',
     slug: '',
-    google_maps_api_key: '',
+    domain_name: '',
     price_per_sq: '750',
     timezone: 'America/New_York',
     team_id: '',
@@ -28,7 +28,11 @@ export function useDashboard(settings) {
     totalSearches: 0,
     uniqueUsers: 0,
     leads: 0,
-    avgEstimate: 0
+    avgEstimate: 0,
+    creditsUsed: 0,
+    creditsRemaining: 0,
+    creditsLimit: 60,
+    creditUsagePercent: 0
   })
 
   const recentSearches = ref([])
@@ -111,7 +115,7 @@ export function useDashboard(settings) {
         if (data.name) state.business = data.name
         if (data.slug) state.slug = data.slug
         if (data.email) state.email = data.email
-        if (data.googleMapsApiKey !== undefined) state.google_maps_api_key = data.googleMapsApiKey || ''
+        if (data.domainName) state.domain_name = data.domainName
         if (data.pricePerSq !== undefined) state.price_per_sq = data.pricePerSq.toString()
         if (data.timezone) state.timezone = data.timezone
         if (data.id) state.team_id = data.id
@@ -143,7 +147,11 @@ export function useDashboard(settings) {
         stats.leads = data.leads || 0
         stats.uniqueUsers = data.uniqueUsers || 0
         stats.avgEstimate = data.avgEstimate || 0
-        
+        stats.creditsUsed = data.creditsUsed || 0
+        stats.creditsRemaining = data.creditsRemaining ?? 0
+        stats.creditsLimit = data.creditsLimit ?? 60
+        stats.creditUsagePercent = data.creditUsagePercent || 0
+
         recentSearches.value = (data.recentSearches || []).map(a => ({
           id: a.id,
           type: a.type || 'search',

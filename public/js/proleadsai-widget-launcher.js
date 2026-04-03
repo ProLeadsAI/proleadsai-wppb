@@ -1,6 +1,6 @@
 /**
  * ProLeadsAI Widget Launcher
- * Opens the Vue custom element widget in a slide-out panel
+ * Opens the hosted iframe widget in a slide-out panel
  */
 (function() {
   'use strict';
@@ -8,6 +8,10 @@
   const config = window.proleadsaiWidget || {};
   let isOpen = false;
   let panelElement = null;
+  let panelOverlay = null;
+  let activeModalFrame = null;
+  let availabilityChecked = false;
+  let widgetEnabled = true;
 
   // Inject styles
   const style = document.createElement('style');
@@ -28,11 +32,6 @@
     .plai-panel-overlay.active {
       opacity: 1;
       pointer-events: auto;
-    }
-    
-    /* Google Places autocomplete dropdown - must be above panel */
-    .pac-container {
-      z-index: 999999 !important;
     }
     
     .plai-panel-container {
@@ -69,12 +68,45 @@
       z-index: 1;
     }
     
-    .plai-panel-container roof-estimator {
+    .plai-panel-frame {
       display: block;
+      width: 100%;
       height: 100%;
       background: #fafaf9;
       box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-      overflow-y: auto;
+      border: 0;
+    }
+
+    .plai-inline-frame-modal {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 100001 !important;
+      width: 100vw !important;
+      max-width: none !important;
+      height: 100vh !important;
+      min-height: 100vh !important;
+      border: 0 !important;
+      background: transparent !important;
+    }
+
+    .plai-panel-container.plai-modal-host-active {
+      inset: 0;
+      width: 100vw;
+      max-width: 100vw;
+      transform: none !important;
+    }
+
+    .plai-panel-container.plai-modal-host-active .plai-panel-frame {
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    .plai-panel-container.plai-modal-host-active .plai-panel-close,
+    .plai-panel-overlay.plai-modal-host-active {
+      display: none;
     }
     
     @media (max-width: 480px) {
@@ -93,76 +125,185 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
+    bindIframeEvents();
+
+    syncWidgetAvailability();
+
     const button = document.getElementById('proleadsai-widget-button');
     if (button) {
       button.addEventListener('click', openPanel);
     }
-    
-    // Listen for modal open event to close the slide-out panel
-    window.addEventListener('proleadsai:modal-open', function() {
-      closePanelKeepModal();
-    });
-    
-    // Listen for modal close event to fully clean up
-    window.addEventListener('proleadsai:modal-close', function() {
-      cleanupPanel();
-    });
   }
-  
-  // Close panel but keep the widget mounted (modal is taking over)
-  function closePanelKeepModal() {
-    if (!isOpen) return;
 
-    const overlay = document.querySelector('.plai-panel-overlay');
-    
-    // Just hide the panel visually, don't remove the elements
-    if (overlay) {
-      overlay.classList.remove('active');
-      overlay.style.display = 'none';
-    }
-    if (panelElement) {
-      panelElement.classList.remove('active');
-      panelElement.style.display = 'none';
-    }
-    
-    // Restore body scroll since modal will handle its own
-    document.body.style.overflow = '';
-    isOpen = false;
+  function getFloatingButton() {
+    return document.getElementById('proleadsai-widget-button');
   }
-  
-  // Fully clean up panel and overlay elements
-  function cleanupPanel() {
-    const overlay = document.querySelector('.plai-panel-overlay');
-    if (overlay) overlay.remove();
-    if (panelElement) {
-      panelElement.remove();
-      panelElement = null;
+
+  function setFloatingButtonVisibility(shouldShow) {
+    widgetEnabled = shouldShow !== false;
+    const button = getFloatingButton();
+    if (!button) {
+      return;
     }
-    document.body.style.overflow = '';
-    isOpen = false;
+
+    button.style.display = widgetEnabled ? 'flex' : 'none';
+  }
+
+  async function syncWidgetAvailability() {
+    setFloatingButtonVisibility(false);
+
+    if (!config.widgetStatusUrl) {
+      availabilityChecked = true;
+      setFloatingButtonVisibility(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(config.widgetStatusUrl, {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Availability check failed');
+      }
+
+      const data = await response.json();
+      availabilityChecked = true;
+      setFloatingButtonVisibility(data.widgetEnabled !== false);
+    } catch (error) {
+      availabilityChecked = true;
+      setFloatingButtonVisibility(false);
+    }
+  }
+
+  function bindIframeEvents() {
+    window.addEventListener('message', function(event) {
+      const data = event.data || {};
+      const inlineFrames = Array.from(document.querySelectorAll('.proleadsai-widget-inline-frame'));
+      const panelFrame = panelElement ? panelElement.querySelector('.plai-panel-frame') : null;
+      const allFrames = panelFrame ? inlineFrames.concat(panelFrame) : inlineFrames;
+
+      allFrames.forEach(function(frame) {
+        if (!frame || event.source !== frame.contentWindow) {
+          return;
+        }
+
+        const embedWrapper = frame.closest('.proleadsai-widget-embed');
+
+        if (data.type === 'proleadsai:availability-changed') {
+          if (frame.classList.contains('plai-panel-frame')) {
+            setFloatingButtonVisibility(data.widgetEnabled !== false);
+            if (data.widgetEnabled === false) {
+              closePanel();
+            }
+          }
+
+          if (frame.classList.contains('proleadsai-widget-inline-frame')) {
+            const shouldShow = data.widgetEnabled !== false;
+            frame.style.height = shouldShow ? frame.style.height : '0px';
+            frame.style.minHeight = shouldShow ? '' : '0px';
+            frame.style.display = shouldShow ? 'block' : 'none';
+
+            if (embedWrapper) {
+              embedWrapper.style.display = shouldShow ? 'block' : 'none';
+              embedWrapper.style.height = shouldShow ? '' : '0px';
+              embedWrapper.style.minHeight = shouldShow ? '' : '0px';
+              embedWrapper.style.margin = shouldShow ? '' : '0';
+              embedWrapper.style.padding = shouldShow ? '' : '0';
+            }
+          }
+          return;
+        }
+
+        if (data.type === 'proleadsai:iframe-resize' && data.height) {
+          if (frame.classList.contains('proleadsai-widget-inline-frame') && !frame.classList.contains('plai-inline-frame-modal')) {
+            const nextHeight = Math.max(parseInt(data.height, 10) || 0, 0);
+            frame.style.height = nextHeight + 'px';
+            frame.style.minHeight = nextHeight + 'px';
+
+            if (embedWrapper) {
+              embedWrapper.style.display = nextHeight > 0 ? 'block' : 'none';
+              embedWrapper.style.height = nextHeight > 0 ? '' : '0px';
+              embedWrapper.style.minHeight = nextHeight > 0 ? '' : '0px';
+              embedWrapper.style.margin = nextHeight > 0 ? '' : '0';
+              embedWrapper.style.padding = nextHeight > 0 ? '' : '0';
+            }
+          }
+          return;
+        }
+
+        if (data.type === 'proleadsai:modal-open') {
+          openFullscreenIframeModal(frame);
+          return;
+        }
+
+        if (data.type === 'proleadsai:modal-close') {
+          closeFullscreenIframeModal(frame);
+        }
+      });
+    });
+  }
+
+  function openFullscreenIframeModal(frame) {
+    activeModalFrame = frame;
+    document.body.style.overflow = 'hidden';
+
+    if (panelElement && frame.classList.contains('plai-panel-frame')) {
+      panelElement.classList.add('plai-modal-host-active');
+      if (panelOverlay) {
+        panelOverlay.classList.add('plai-modal-host-active');
+      }
+      return;
+    }
+
+    frame.classList.add('plai-inline-frame-modal');
+  }
+
+  function closeFullscreenIframeModal(frame) {
+    const targetFrame = frame || activeModalFrame;
+    if (!targetFrame) {
+      return;
+    }
+
+    if (panelElement && targetFrame.classList.contains('plai-panel-frame')) {
+      panelElement.classList.remove('plai-modal-host-active');
+      if (panelOverlay) {
+        panelOverlay.classList.remove('plai-modal-host-active');
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      targetFrame.classList.remove('plai-inline-frame-modal');
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    }
+
+    activeModalFrame = null;
   }
 
   function openPanel() {
+    if (!availabilityChecked) return;
+    if (!widgetEnabled) return;
     if (isOpen) return;
     isOpen = true;
 
     // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'plai-panel-overlay';
-    overlay.addEventListener('click', closePanel);
-    document.body.appendChild(overlay);
+    panelOverlay = document.createElement('div');
+    panelOverlay.className = 'plai-panel-overlay';
+    panelOverlay.addEventListener('click', closePanel);
+    document.body.appendChild(panelOverlay);
 
     // Create panel container
     panelElement = document.createElement('div');
     panelElement.className = 'plai-panel-container';
     panelElement.innerHTML = `
       <button class="plai-panel-close">&times;</button>
-      <roof-estimator
-        org-id="${config.orgId || ''}"
-        api-url="${config.apiUrl || 'https://app.proleadsai.com/api'}"
-        google-maps-api-key="${config.googleMapsApiKey || ''}"
-        primary-color="${config.primaryColor || '#1d4ed8'}"
-      ></roof-estimator>
+      <iframe
+        class="plai-panel-frame"
+        src="${config.iframeUrl || ''}"
+        title="${config.panelTitle || 'ProLeadsAI Roof Estimator'}"
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allow="clipboard-write"
+      ></iframe>
     `;
     document.body.appendChild(panelElement);
 
@@ -174,7 +315,7 @@
 
     // Animate in
     requestAnimationFrame(() => {
-      overlay.classList.add('active');
+      panelOverlay.classList.add('active');
       panelElement.classList.add('active');
     });
   }
@@ -182,17 +323,19 @@
   function closePanel() {
     if (!isOpen) return;
 
-    const overlay = document.querySelector('.plai-panel-overlay');
-    
-    if (overlay) overlay.classList.remove('active');
+    closeFullscreenIframeModal(activeModalFrame);
+
+    if (panelOverlay) panelOverlay.classList.remove('active');
     if (panelElement) panelElement.classList.remove('active');
 
     setTimeout(() => {
-      if (overlay) overlay.remove();
+      if (panelOverlay) panelOverlay.remove();
       if (panelElement) panelElement.remove();
+      panelOverlay = null;
       panelElement = null;
       document.body.style.overflow = '';
       isOpen = false;
+      syncWidgetAvailability();
     }, 300);
   }
 

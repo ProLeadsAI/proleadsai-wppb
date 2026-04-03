@@ -19,7 +19,7 @@ const emit = defineEmits(['edit-settings'])
       </Button>
     </CardHeader>
     <CardContent>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div>
           <span class="text-sm text-muted-foreground">Business</span>
           <p class="font-medium">{{ state.business || 'Not set' }}</p>
@@ -33,10 +33,12 @@ const emit = defineEmits(['edit-settings'])
           <p class="font-medium">${{ state.price_per_sq || '750' }}</p>
         </div>
         <div>
-          <span class="text-sm text-muted-foreground">Google Maps API</span>
-          <p :class="state.google_maps_api_key ? 'text-green-600' : 'text-red-600'" class="font-medium">
-            {{ state.google_maps_api_key ? 'Configured' : 'Not set' }}
-          </p>
+          <span class="text-sm text-muted-foreground">Website</span>
+          <p class="font-medium truncate">{{ state.domain_name || 'Not connected yet' }}</p>
+        </div>
+        <div>
+          <span class="text-sm text-muted-foreground">Plan</span>
+          <p class="font-medium capitalize">{{ state.plan || 'free' }}</p>
         </div>
       </div>
     </CardContent>

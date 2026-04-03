@@ -1,17 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { Search, FileText, Lock, Sparkles, ExternalLink, Mail, Phone, User, HelpCircle, X } from 'lucide-vue-next'
+import { Search, FileText, ExternalLink, Mail, Phone, User, HelpCircle, X } from 'lucide-vue-next'
 import { Card, CardHeader, CardContent, CardTitle, Button } from '@/components/ui'
 import { BASE_URL } from '@/lib/api'
 
 const props = defineProps({
   searches: { type: Array, default: () => [] },
   formatDate: { type: Function, required: true },
-  isPro: { type: Boolean, default: false },
   slug: { type: String, default: '' }
 })
-
-const emit = defineEmits(['upgrade'])
 
 const showLegendModal = ref(false)
 
@@ -42,8 +39,7 @@ const getLeadUrl = (leadId) => {
         </button>
       </div>
       <div class="flex items-center gap-2">
-        <!-- View Leads button for Pro users -->
-        <a v-if="isPro && slug" :href="dashboardUrl" target="_blank">
+        <a v-if="slug" :href="dashboardUrl" target="_blank">
           <Button 
             variant="outline" 
             size="sm"
@@ -53,17 +49,6 @@ const getLeadUrl = (leadId) => {
             View Leads
           </Button>
         </a>
-        <!-- Unlock Leads button for free users -->
-        <Button 
-          v-if="!isPro && searches.length > 0"
-          variant="outline" 
-          size="sm"
-          class="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-          @click="emit('upgrade')"
-        >
-          <Sparkles class="w-4 h-4 mr-1" />
-          Unlock Leads
-        </Button>
       </div>
     </CardHeader>
     <CardContent>
@@ -106,34 +91,12 @@ const getLeadUrl = (leadId) => {
               <span v-if="search.name" class="inline-flex items-center gap-1 text-gray-600">
                 <User class="w-3 h-3" /> {{ search.name }}
               </span>
-              <!-- Pro users see email/phone -->
-              <template v-if="isPro">
-                <span v-if="search.email" class="inline-flex items-center gap-1 ml-2 text-gray-500">
-                  <Mail class="w-3 h-3" /> {{ search.email }}
-                </span>
-                <span v-if="search.phone" class="inline-flex items-center gap-1 ml-2 text-gray-500">
-                  <Phone class="w-3 h-3" /> {{ search.phone }}
-                </span>
-              </template>
-              <!-- Free users see blurred email/phone with icons, clickable to upgrade -->
-              <template v-else-if="search.name">
-                <span 
-                  class="inline-flex items-center gap-1 ml-2 text-gray-400 cursor-pointer hover:text-gray-500"
-                  @click="emit('upgrade')"
-                >
-                  <Mail class="w-3 h-3" />
-                  <span class="blur-[2px] select-none">{{ search.name?.split(' ')[0]?.toLowerCase() }}@gmail.com</span>
-                  <Lock class="w-3 h-3 text-gray-400" />
-                </span>
-                <span 
-                  class="inline-flex items-center gap-1 ml-2 text-gray-400 cursor-pointer hover:text-gray-500"
-                  @click="emit('upgrade')"
-                >
-                  <Phone class="w-3 h-3" />
-                  <span class="blur-[2px] select-none">(555) 123-4567</span>
-                  <Lock class="w-3 h-3 text-gray-400" />
-                </span>
-              </template>
+              <span v-if="search.email" class="inline-flex items-center gap-1 ml-2 text-gray-500">
+                <Mail class="w-3 h-3" /> {{ search.email }}
+              </span>
+              <span v-if="search.phone" class="inline-flex items-center gap-1 ml-2 text-gray-500">
+                <Phone class="w-3 h-3" /> {{ search.phone }}
+              </span>
             </div>
           </div>
           <!-- Time & View Button -->
@@ -141,9 +104,8 @@ const getLeadUrl = (leadId) => {
             <span class="text-xs text-muted-foreground whitespace-nowrap">
               {{ formatDate(search.createdAt) }}
             </span>
-            <!-- View Lead button for Pro users with leadId -->
             <a 
-              v-if="isPro && search.leadId" 
+              v-if="search.leadId" 
               :href="getLeadUrl(search.leadId)" 
               target="_blank"
               class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded hover:bg-emerald-100 transition-colors"

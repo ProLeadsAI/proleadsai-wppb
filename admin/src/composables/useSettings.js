@@ -1,8 +1,6 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { wpAjax, loadState as loadFn, saveState as saveFn } from '@/lib/wpAjax'
-import { useApiValidation } from './useApiValidation'
 import { useAuth } from './useAuth'
-import { BASE_URL } from '@/lib/api'
 
 export function useSettings(settings, emit) {
   const { showReauthModal, handleAuthError, checkAuthToken, handleReauthSuccess: baseHandleReauthSuccess } = useAuth(settings)
@@ -11,7 +9,6 @@ export function useSettings(settings, emit) {
   const isSaving = ref(false)
   const error = ref('')
   const success = ref('')
-  const showApiKeyHelp = ref(null)
 
   const state = reactive({
     email: '',
@@ -19,8 +16,7 @@ export function useSettings(settings, emit) {
     team_id: '',
     auth_token: '',
     business: '',
-    google_maps_api_key: '',
-    google_solar_api_key: '',
+    domain_name: '',
     price_per_sq: '750',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     // Floating button
@@ -59,99 +55,8 @@ export function useSettings(settings, emit) {
     sidebar_text_size: ''
   })
 
-  const { isValidating: isValidatingPlaces, apiValidation: placesValidation, initValidation: initPlacesValidation, validateApiKey: validatePlacesKey } = useApiValidation(settings)
-
-  // Solar API validation state
-  const isValidatingSolar = ref(false)
-  const solarValidation = reactive({
-    checked: false,
-    valid: false,
-    message: '',
-    lastValidatedKey: ''
-  })
-
-  function resetSolarValidation() {
-    solarValidation.checked = false
-    solarValidation.valid = false
-    solarValidation.message = ''
-  }
-
-  watch(() => state.google_solar_api_key, (val) => {
-    const key = (val || '').trim()
-    if (!key || key !== solarValidation.lastValidatedKey) {
-      resetSolarValidation()
-    }
-  })
-
-  async function validateSolarKey() {
-    const key = state.google_solar_api_key?.trim()
-    if (!key) {
-      solarValidation.checked = true
-      solarValidation.valid = false
-      solarValidation.message = 'API key is required'
-      return
-    }
-
-    isValidatingSolar.value = true
-    solarValidation.checked = false
-
-    try {
-      const response = await wpAjax('proleadsai_validate_solar_api', { apiKey: key }, settings)
-      
-      if (response.success && response.data?.solarApi) {
-        solarValidation.checked = true
-        solarValidation.valid = response.data.solarApi.valid
-        solarValidation.message = response.data.solarApi.message
-        solarValidation.lastValidatedKey = key
-      } else {
-        solarValidation.checked = true
-        solarValidation.valid = false
-        solarValidation.message = response.data?.message || 'Failed to validate Solar API'
-      }
-    } catch (e) {
-      solarValidation.checked = true
-      solarValidation.valid = false
-      solarValidation.message = e.message || 'Failed to validate Solar API'
-    } finally {
-      isValidatingSolar.value = false
-    }
-  }
-
-  const apiDomain = computed(() => {
-    try {
-      return new URL(BASE_URL).host
-    } catch {
-      return 'app.proleadsai.com'
-    }
-  })
-
   const appUrl = computed(() => {
-    try {
-      return new URL(BASE_URL).origin
-    } catch {
-      return 'https://app.proleadsai.com'
-    }
-  })
-
-  const siteDomain = computed(() => {
-    try {
-      return new URL(settings.siteUrl || window.location.origin).hostname
-    } catch {
-      return window.location.hostname
-    }
-  })
-
-  function resetPlacesValidation() {
-    placesValidation.checked = false
-    placesValidation.domains.site.places = { valid: false, message: '' }
-    placesValidation.domains.app.places = { valid: false, message: '' }
-  }
-
-  watch(() => state.google_maps_api_key, (val) => {
-    const key = (val || '').trim()
-    if (!key || key !== placesValidation.lastValidatedKey) {
-      resetPlacesValidation()
-    }
+    return 'https://app.proleadsai.com'
   })
 
   async function loadSettings() {
@@ -159,13 +64,6 @@ export function useSettings(settings, emit) {
       const data = await loadFn(settings)
       if (data && typeof data === 'object') {
         Object.assign(state, data)
-
-        const loadedPlacesKey = (data.google_maps_api_key || '').trim()
-        if (loadedPlacesKey) {
-          placesValidation.originalKey = loadedPlacesKey
-          placesValidation.lastValidatedKey = loadedPlacesKey
-          resetPlacesValidation()
-        }
       }
 
       if (!state.shortcode_heading) state.shortcode_heading = 'Free Roof Estimate Instantly'
@@ -193,16 +91,7 @@ export function useSettings(settings, emit) {
       if (response.success && response.data) {
         const data = response.data
         if (data.name) state.business = data.name
-        if (data.googleMapsApiKey) {
-          state.google_maps_api_key = data.googleMapsApiKey
-          const loadedPlacesKey = (data.googleMapsApiKey || '').trim()
-          placesValidation.originalKey = loadedPlacesKey
-          placesValidation.lastValidatedKey = loadedPlacesKey
-          resetPlacesValidation()
-        }
-        if (data.googleSolarApiKey) {
-          state.google_solar_api_key = data.googleSolarApiKey
-        }
+        if (data.domainName) state.domain_name = data.domainName
         if (data.pricePerSq !== undefined) state.price_per_sq = data.pricePerSq.toString()
         if (data.timezone) state.timezone = data.timezone
         if (data.id) state.team_id = data.id
@@ -218,16 +107,8 @@ export function useSettings(settings, emit) {
     success.value = ''
     
     try {
-      const placesKey = state.google_maps_api_key.trim()
-
-      if (placesKey && placesKey !== placesValidation.lastValidatedKey) {
-        await validatePlacesKey(placesKey, true)
-      }
-      
       const response = await wpAjax('proleadsai_proxy_save_settings', {
         name: state.business,
-        googleMapsApiKey: state.google_maps_api_key,
-        googleSolarApiKey: state.google_solar_api_key,
         pricePerSq: parseInt(state.price_per_sq, 10) || 750,
         timezone: state.timezone
       }, settings)
@@ -373,14 +254,7 @@ export function useSettings(settings, emit) {
     isSaving,
     error,
     success,
-    showApiKeyHelp,
-    isValidatingSolar,
-    solarValidation,
-    validateSolarKey,
-    resetSolarValidation,
-    apiDomain,
     appUrl,
-    siteDomain,
     loadSettings,
     saveBusinessSettings,
     saveAppearance,

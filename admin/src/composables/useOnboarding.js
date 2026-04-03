@@ -1,34 +1,17 @@
-import { ref, reactive, computed, watch } from 'vue'
-import { BASE_URL } from '@/lib/api'
+import { ref, reactive, computed } from 'vue'
 import { wpAjax, saveState as saveFn, loadState as loadFn } from '@/lib/wpAjax'
 
 export function useOnboarding(settings, emit) {
   // State
-  const steps = ['Welcome', 'Email Verification', 'Business Info', 'Google Maps API', 'Google Solar API', 'Theme & Pricing']
+  const steps = ['Welcome', 'Email Verification', 'Business Info', 'Theme & Pricing']
   const currentStep = ref(0)
   const isLoading = ref(false)
   const error = ref('')
   const codeSent = ref(false)
   const isChangingEmail = ref(false)
   const cooldown = ref(0)
-  const showApiFixModal = ref(null)
-
-  // Maps API validation state (Step 3)
-  const mapsValidation = reactive({
-    checked: false,
-    valid: false,
-    lastValidatedKey: '',
-    mapsJs: { valid: false, message: '' },
-    placesApi: { valid: false, message: '' }
-  })
-
-  // Solar API validation state (Step 4)
-  const solarValidation = reactive({
-    checked: false,
-    valid: false,
-    lastValidatedKey: '',
-    message: ''
-  })
+  const availableOrganizations = ref([])
+  const requiresOrganizationSelection = ref(false)
 
   const state = reactive({
     email: '',
@@ -36,10 +19,9 @@ export function useOnboarding(settings, emit) {
     user_id: '',
     auth_token: '',
     team_id: '',
+    selected_org_id: '',
     code: '',
     business: '',
-    google_maps_api_key: '',
-    google_solar_api_key: '',
     primary_color: '#ffd400',
     text_color: '#1d1616',
     button_position: 'bottom-center',
@@ -48,14 +30,6 @@ export function useOnboarding(settings, emit) {
   })
 
   // Computed
-  const apiDomain = computed(() => {
-    try {
-      return new URL(BASE_URL).host
-    } catch {
-      return 'app.proleadsai.com'
-    }
-  })
-
   const siteDomain = computed(() => {
     try {
       return new URL(settings.siteUrl || window.location.origin).hostname
@@ -67,59 +41,14 @@ export function useOnboarding(settings, emit) {
   const canProceed = computed(() => {
     if (currentStep.value === 0) return true
     if (currentStep.value === 1) return state.email_verified
-    if (currentStep.value === 2) return state.business.trim().length > 0
-    if (currentStep.value === 3) {
-      const key = state.google_maps_api_key.trim()
-      if (!key) return false
-      if (!mapsValidation.checked) return false
-      if (mapsValidation.lastValidatedKey !== key) return false
-      return mapsValidation.valid
-    }
-    if (currentStep.value === 4) {
-      const key = state.google_solar_api_key.trim()
-      if (!key) return false
-      if (!solarValidation.checked) return false
-      if (solarValidation.lastValidatedKey !== key) return false
-      return solarValidation.valid
+    if (currentStep.value === 2) {
+      if (availableOrganizations.value.length > 0) {
+        return state.selected_org_id.trim().length > 0
+      }
+      return state.business.trim().length > 0
     }
     return true
   })
-
-  watch(() => state.google_maps_api_key, (val) => {
-    const key = (val || '').trim()
-    if (!key || key !== mapsValidation.lastValidatedKey) {
-      mapsValidation.checked = false
-      mapsValidation.valid = false
-      mapsValidation.mapsJs = { valid: false, message: '' }
-      mapsValidation.placesApi = { valid: false, message: '' }
-    }
-  })
-
-  watch(() => state.google_solar_api_key, (val) => {
-    const key = (val || '').trim()
-    if (!key || key !== solarValidation.lastValidatedKey) {
-      solarValidation.checked = false
-      solarValidation.valid = false
-      solarValidation.message = ''
-    }
-  })
-
-  // Handle Maps validation result from StepGoogleMaps component
-  function handleMapsValidationComplete(result) {
-    mapsValidation.checked = true
-    mapsValidation.valid = result.valid
-    mapsValidation.lastValidatedKey = state.google_maps_api_key.trim()
-    mapsValidation.mapsJs = result.mapsJs || { valid: false, message: '' }
-    mapsValidation.placesApi = result.placesApi || { valid: false, message: '' }
-  }
-
-  // Handle Solar validation result from StepGoogleSolar component
-  function handleSolarValidationComplete(result) {
-    solarValidation.checked = true
-    solarValidation.valid = result.valid
-    solarValidation.lastValidatedKey = state.google_solar_api_key.trim()
-    solarValidation.message = result.message || ''
-  }
 
   // Helpers
   const ajax = (action, data = {}) => wpAjax(action, data, settings)
@@ -132,35 +61,15 @@ export function useOnboarding(settings, emit) {
       if (data && typeof data === 'object') {
         Object.assign(state, data)
         
-        if (data.google_maps_api_key) {
-          mapsValidation.lastValidatedKey = data.google_maps_api_key
-          mapsValidation.checked = true
-          mapsValidation.valid = true
-          mapsValidation.mapsJs = { valid: true, message: '' }
-          mapsValidation.placesApi = { valid: true, message: '' }
-        }
-        
-        if (data.google_solar_api_key) {
-          solarValidation.lastValidatedKey = data.google_solar_api_key
-          solarValidation.checked = true
-          solarValidation.valid = true
-          solarValidation.message = ''
-        }
-        
         if (data.completed) {
           emit('complete')
           return
         }
         
         if (data.auth_token && data.team_id) {
-          currentStep.value = data.google_solar_api_key
-            ? 5
-            : data.google_maps_api_key
-              ? 4
-              : data.business
-                ? 3
-                : 2
+          currentStep.value = data.business ? 3 : 2
         } else if (data.email_verified && data.user_id) {
+          await fetchAvailableOrganizations()
           currentStep.value = 2
         }
       }
@@ -211,7 +120,13 @@ export function useOnboarding(settings, emit) {
       codeSent.value = false
       
       await saveState({ email: state.email, email_verified: true, user_id: state.user_id })
-      await fetchExistingOrg()
+      await fetchAvailableOrganizations()
+
+      if (state.auth_token && state.team_id) {
+        currentStep.value = 3
+      } else {
+        currentStep.value = 2
+      }
     } catch (e) {
       error.value = e.message
     } finally {
@@ -219,31 +134,71 @@ export function useOnboarding(settings, emit) {
     }
   }
 
-  async function fetchExistingOrg() {
+  function applySelectedOrganization(org) {
+    if (!org) return
+
+    state.selected_org_id = org.id || ''
+    state.business = org.name || ''
+    if (org.pricePerSq) state.price_per_sq = org.pricePerSq.toString()
+    if (org.timezone) state.timezone = org.timezone
+  }
+
+  async function connectExistingOrganization(organizationId) {
+    const org = availableOrganizations.value.find(item => item.id === organizationId)
+    if (org) applySelectedOrganization(org)
+
+    const data = await ajax('proleadsai_create_business', {
+      userId: state.user_id,
+      organizationId,
+      businessName: org?.name || state.business
+    })
+
+    if (!data.success) {
+      throw new Error(data.data?.message || 'Failed to connect organization')
+    }
+
+    state.auth_token = data.data.apiKey || ''
+    state.team_id = data.data.team?.id || organizationId
+    state.business = data.data.team?.name || state.business
+
+    await saveState({
+      selected_org_id: state.selected_org_id,
+      business: state.business,
+      auth_token: state.auth_token,
+      team_id: state.team_id,
+      price_per_sq: state.price_per_sq,
+      timezone: state.timezone
+    })
+  }
+
+  async function fetchAvailableOrganizations() {
     if (!state.user_id) return
     
     try {
-      const data = await ajax('proleadsai_get_user_org', { userId: state.user_id })
-      if (data.success && data.data?.found && data.data?.organization) {
-        const org = data.data.organization
-        state.business = org.name || ''
-        state.team_id = org.id || ''
-        if (org.googleMapsApiKey) state.google_maps_api_key = org.googleMapsApiKey
-        if (org.googleSolarApiKey) state.google_solar_api_key = org.googleSolarApiKey
-        if (org.pricePerSq) state.price_per_sq = org.pricePerSq.toString()
-        if (org.timezone) state.timezone = org.timezone
-        
-        await saveState({
-          business: state.business,
-          team_id: state.team_id,
-          google_maps_api_key: state.google_maps_api_key,
-          google_solar_api_key: state.google_solar_api_key,
-          price_per_sq: state.price_per_sq,
-          timezone: state.timezone
-        })
+      const data = await ajax('proleadsai_get_user_org', { userId: state.user_id, siteUrl: settings.siteUrl })
+      if (!data.success) return
+
+      availableOrganizations.value = data.data?.organizations || []
+      requiresOrganizationSelection.value = !!data.data?.requiresSelection
+
+      if (data.data?.autoConnectOrganization?.id) {
+        await connectExistingOrganization(data.data.autoConnectOrganization.id)
+        return
+      }
+
+      if (state.selected_org_id) {
+        const persistedOrg = availableOrganizations.value.find(org => org.id === state.selected_org_id)
+        if (persistedOrg) {
+          applySelectedOrganization(persistedOrg)
+          return
+        }
+      }
+
+      if (availableOrganizations.value.length === 1) {
+        applySelectedOrganization(availableOrganizations.value[0])
       }
     } catch (e) {
-      console.error('Failed to fetch existing org:', e)
+      console.error('Failed to fetch available organizations:', e)
     }
   }
 
@@ -251,8 +206,6 @@ export function useOnboarding(settings, emit) {
     if (currentStep.value === steps.length - 1) {
       await saveState({
         business: state.business,
-        google_maps_api_key: state.google_maps_api_key,
-        google_solar_api_key: state.google_solar_api_key,
         primary_color: state.primary_color,
         text_color: state.text_color,
         button_position: state.button_position,
@@ -264,6 +217,7 @@ export function useOnboarding(settings, emit) {
         try {
           await ajax('proleadsai_update_settings', {
             userId: state.user_id,
+            organizationId: state.team_id,
             businessName: state.business,
             pricePerSq: parseInt(state.price_per_sq, 10) || 750,
             timezone: state.timezone
@@ -277,58 +231,33 @@ export function useOnboarding(settings, emit) {
       window.location.href = `${settings.adminUrl}admin.php?page=proleadsai-dashboard`
       return
     }
+
+    if (currentStep.value === 1) {
+      currentStep.value = state.auth_token && state.team_id ? 3 : 2
+      return
+    }
     
     if (currentStep.value === 2) {
       try {
-        const data = await ajax('proleadsai_create_business', {
-          userId: state.user_id,
-          businessName: state.business
-        })
-        if (data.success && data.data) {
-          state.auth_token = data.data.apiKey || ''
-          state.team_id = data.data.team?.id || ''
-          await saveState({
-            business: state.business,
-            auth_token: state.auth_token,
-            team_id: state.team_id
+        if (state.selected_org_id) {
+          await connectExistingOrganization(state.selected_org_id)
+        } else {
+          const data = await ajax('proleadsai_create_business', {
+            userId: state.user_id,
+            businessName: state.business
           })
+          if (data.success && data.data) {
+            state.auth_token = data.data.apiKey || ''
+            state.team_id = data.data.team?.id || ''
+            await saveState({
+              business: state.business,
+              auth_token: state.auth_token,
+              team_id: state.team_id
+            })
+          }
         }
       } catch (e) {
         console.error('Failed to create business:', e)
-      }
-    } else if (currentStep.value === 3) {
-      if (!canProceed.value) {
-        error.value = 'Please validate your Google Maps API key before continuing'
-        return
-      }
-      
-      await saveState({ google_maps_api_key: state.google_maps_api_key })
-      if (state.user_id && state.google_maps_api_key) {
-        try {
-          await ajax('proleadsai_update_settings', {
-            userId: state.user_id,
-            googleMapsApiKey: state.google_maps_api_key
-          })
-        } catch (e) {
-          console.error('Failed to save Google Maps API key:', e)
-        }
-      }
-    } else if (currentStep.value === 4) {
-      if (!canProceed.value) {
-        error.value = 'Please validate your Google Solar API key before continuing'
-        return
-      }
-      
-      await saveState({ google_solar_api_key: state.google_solar_api_key })
-      if (state.user_id && state.google_solar_api_key) {
-        try {
-          await ajax('proleadsai_update_settings', {
-            userId: state.user_id,
-            googleSolarApiKey: state.google_solar_api_key
-          })
-        } catch (e) {
-          console.error('Failed to save Google Solar API key:', e)
-        }
       }
     }
     
@@ -349,9 +278,9 @@ export function useOnboarding(settings, emit) {
     codeSent,
     isChangingEmail,
     cooldown,
-    showApiFixModal,
+    availableOrganizations,
+    requiresOrganizationSelection,
     // Computed
-    apiDomain,
     siteDomain,
     canProceed,
     // Actions
@@ -359,8 +288,7 @@ export function useOnboarding(settings, emit) {
     handleChangeEmail,
     sendVerificationCode,
     verifyCode,
-    handleMapsValidationComplete,
-    handleSolarValidationComplete,
+    applySelectedOrganization,
     nextStep,
     prevStep
   }
